@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import * as si from "systeminformation";
+import { detectROCm } from "@/lib/system/rocm";
+import type { SystemMetrics } from "@/types/metrics";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,18 +20,18 @@ async function getMemoryMetrics() {
   return si.mem();
 }
 
-async function getGpuMetrics() {
-  try {
-    const graphics = await si.graphics();
-    return graphics.controllers || [];
-  } catch {
-    return [];
-  }
-}
-
 async function getNetworkStats() {
   try {
-    return await si.networkStats();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stats = await si.networkStats() as any[];
+    return stats.map((iface) => ({
+      iface: String(iface.iface || ""),
+      rx_bytes: Number(iface.rx_bytes || 0),
+      tx_bytes: Number(iface.tx_bytes || 0),
+      rx_sec: Number(iface.rx_sec || 0),
+      tx_sec: Number(iface.tx_sec || 0),
+      speed: 0,
+    }));
   } catch {
     return [];
   }
@@ -37,7 +39,14 @@ async function getNetworkStats() {
 
 async function getDiskMetrics() {
   try {
-    return await si.fsSize();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const disks = await si.fsSize() as any[];
+    return disks.map((disk) => ({
+      fs: String(disk.fs || ""),
+      size: Number(disk.size || 0),
+      used: Number(disk.used || 0),
+      use: Number(disk.use || 0),
+    }));
   } catch {
     return [];
   }
@@ -47,16 +56,92 @@ async function getOsInfo() {
   return si.osInfo();
 }
 
-export async function GET() {
+interface GpuOutput {
+  index: number;
+  name: string;
+  marketingName: string;
+  vendor: string;
+  usage: number;
+  memory: { total: number; used: number };
+  temperature: number | null;
+  power: number | null;
+  driverVersion: string;
+  gfxVersion: string;
+  deviceId: string;
+  computeUnits: number;
+  maxClockMHz: number;
+  currentClockMHz: number;
+}
+
+async function getGpuMetrics(): Promise<GpuOutput[]> {
+  // First try ROCm detection
   try {
-    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp }, mem, gpuArray, networkStats, diskArr, osInfo] =
+    const rocData = await detectROCm();
+    if (rocData.gpus && rocData.gpus.length > 0) {
+      return rocData.gpus.map((gpu) => ({
+        index: gpu.index,
+        name: gpu.name,
+        marketingName: gpu.marketingName,
+        vendor: gpu.vendor,
+        usage: 0,
+        memory: gpu.memory || { total: 0, used: 0 },
+        temperature: gpu.temperature ?? null,
+        power: gpu.power ?? null,
+        driverVersion: gpu.driverVersion || "Unknown",
+        gfxVersion: gpu.gfxVersion,
+        deviceId: gpu.deviceId || "N/A",
+        computeUnits: gpu.computeUnits,
+        maxClockMHz: gpu.maxClockMHz,
+        currentClockMHz: gpu.currentClockMHz || 0,
+      }));
+    }
+  } catch (e) {
+    console.warn("ROCm detection failed:", e);
+  }
+
+  // Fallback to systeminformation
+  try {
+    const graphics = await si.graphics();
+    const controllers = graphics.controllers || [];
+    if (controllers.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return controllers.map((gpu: any, index: number) => ({
+        index,
+        name: String(gpu.model || "Unknown GPU"),
+        marketingName: String(gpu.model || "Unknown GPU"),
+        vendor: String(gpu.vendor || "Unknown"),
+        usage: Number(gpu.utilizationGpu ?? 0),
+        memory: {
+          total: Number(gpu.memoryTotal ?? 0) / (1024 * 1024 * 1024),
+          used: Number(gpu.memoryUsed ?? 0) / (1024 * 1024 * 1024),
+        },
+        temperature: Number(gpu.temperatureGpu ?? 0) || null,
+        power: Number(gpu.powerDraw ?? 0) || null,
+        driverVersion: String(gpu.driverVersion || "Unknown"),
+        gfxVersion: "N/A",
+        deviceId: "N/A",
+        computeUnits: 0,
+        maxClockMHz: 0,
+        currentClockMHz: Number(gpu.clockCore ?? 0),
+      }));
+    }
+  } catch (e) {
+    console.warn("Graphics detection failed:", e);
+  }
+
+  return [];
+}
+
+export async function GET(): Promise<NextResponse> {
+  try {
+    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp }, mem, networkStats, diskArr, osInfo, gpuArray] =
       await Promise.all([
         getCpuMetrics(),
         getMemoryMetrics(),
-        getGpuMetrics(),
         getNetworkStats(),
         getDiskMetrics(),
         getOsInfo(),
+        getGpuMetrics(),
       ]);
 
     // CPU metrics
@@ -85,53 +170,12 @@ export async function GET() {
       swapFree: Math.round(((mem.swaptotal || 0 - (mem.swapused || 0)) / (1024 * 1024 * 1024)) * 100) / 100,
     };
 
-    // GPU metrics
-    const gpuMetrics = gpuArray.map((gpu: {
-      model?: string;
-      vendor?: string;
-      vram?: number | null;
-      utilizationGpu?: number;
-      memoryTotal?: number;
-      memoryUsed?: number;
-      temperatureGpu?: number;
-      powerDraw?: number;
-      driverVersion?: string;
-      clockCore?: number;
-    }, index: number) => ({
-      index,
-      name: gpu.model || "Unknown GPU",
-      marketingName: gpu.model || "Unknown GPU",
-      vendor: gpu.vendor || "Unknown",
-      usage: gpu.utilizationGpu !== undefined ? Math.round(gpu.utilizationGpu) : 0,
-      memory: {
-        total: gpu.memoryTotal !== undefined ? Math.round((gpu.memoryTotal / (1024 * 1024 * 1024)) * 100) / 100 : 0,
-        used: gpu.memoryUsed !== undefined ? Math.round((gpu.memoryUsed / (1024 * 1024 * 1024)) * 100) / 100 : 0,
-      },
-      temperature: gpu.temperatureGpu !== undefined ? Math.round(gpu.temperatureGpu) : null,
-      power: gpu.powerDraw !== undefined ? Math.round(gpu.powerDraw) : null,
-      driverVersion: gpu.driverVersion || "Unknown",
-      gfxVersion: "N/A",
-      deviceId: "N/A",
-      computeUnits: 0,
-      maxClockMHz: 0,
-      currentClockMHz: gpu.clockCore !== undefined ? Math.round(gpu.clockCore) : 0,
-    }));
-
     // Network metrics
     const networkMetrics = {
-      interfaces: networkStats.map((iface: {
-        iface?: string;
-        ip4addr?: string;
-        ip6addr?: string;
-        speed?: number;
-        rx_sec?: number;
-        tx_sec?: number;
-        rx_bytes?: number;
-        tx_bytes?: number;
-      }) => ({
+      interfaces: networkStats.map((iface) => ({
         name: iface.iface || "unknown",
-        ip4: iface.ip4addr || "N/A",
-        ip6: iface.ip6addr || "N/A",
+        ip4: "N/A",
+        ip6: "N/A",
         speed: iface.speed || 0,
         rxSec: iface.rx_sec || 0,
         txSec: iface.tx_sec || 0,
@@ -139,19 +183,14 @@ export async function GET() {
         txBytes: iface.tx_bytes || 0,
       })),
       total: {
-        rxSec: networkStats.reduce((sum: number, i: { rx_sec?: number }) => sum + (i.rx_sec || 0), 0),
-        txSec: networkStats.reduce((sum: number, i: { tx_sec?: number }) => sum + (i.tx_sec || 0), 0),
+        rxSec: networkStats.reduce((sum, i) => sum + (i.rx_sec || 0), 0),
+        txSec: networkStats.reduce((sum, i) => sum + (i.tx_sec || 0), 0),
       },
     };
 
     // Disk metrics
     const diskMetrics = {
-      disks: diskArr.map((disk: {
-        fs?: string;
-        size?: number;
-        used?: number;
-        use?: number;
-      }) => ({
+      disks: diskArr.map((disk) => ({
         name: disk.fs || "Unknown",
         total: Math.round(((disk.size || 0) / (1024 * 1024 * 1024)) * 100) / 100,
         used: Math.round(((disk.used || 0) / (1024 * 1024 * 1024)) * 100) / 100,
@@ -159,9 +198,9 @@ export async function GET() {
         usage: Math.round(disk.use || 0),
       })),
       total: {
-        total: Math.round((diskArr.reduce((sum: number, d: { size?: number }) => sum + (d.size || 0), 0) / (1024 * 1024 * 1024)) * 100) / 100,
-        used: Math.round((diskArr.reduce((sum: number, d: { used?: number }) => sum + (d.used || 0), 0) / (1024 * 1024 * 1024)) * 100) / 100,
-        free: Math.round((diskArr.reduce((sum: number, d: { size?: number; used?: number }) => sum + ((d.size || 0) - (d.used || 0)), 0) / (1024 * 1024 * 1024)) * 100) / 100,
+        total: Math.round((diskArr.reduce((sum, d) => sum + (d.size || 0), 0) / (1024 * 1024 * 1024)) * 100) / 100,
+        used: Math.round((diskArr.reduce((sum, d) => sum + (d.used || 0), 0) / (1024 * 1024 * 1024)) * 100) / 100,
+        free: Math.round((diskArr.reduce((sum, d) => sum + ((d.size || 0) - (d.used || 0)), 0) / (1024 * 1024 * 1024)) * 100) / 100,
       },
     };
 
@@ -174,15 +213,17 @@ export async function GET() {
       arch: osInfo.arch || "Unknown",
     };
 
-    return NextResponse.json({
+    const response: SystemMetrics = {
       timestamp: Date.now(),
       cpu: cpuMetrics,
       memory: memoryMetrics,
-      gpu: gpuMetrics,
+      gpu: gpuArray,
       network: networkMetrics,
       disk: diskMetrics,
       os: osMetrics,
-    });
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Failed to collect metrics:", error);
     return NextResponse.json({ error: "Failed to collect metrics" }, { status: 500 });

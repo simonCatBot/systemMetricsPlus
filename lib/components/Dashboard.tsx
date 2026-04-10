@@ -15,10 +15,10 @@ import {
   Gauge,
   Thermometer,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 
 const UPDATE_INTERVAL = 2000;
-const HISTORY_LENGTH = 60;
 
 function formatGB(gb: number) {
   return `${gb.toFixed(1)} GB`;
@@ -153,10 +153,13 @@ function ProminentCard({
 function ProgressBar({
   value,
   alert = false,
+  colorClass = "bg-primary",
 }: {
   value: number;
   alert?: boolean;
+  colorClass?: string;
 }) {
+  const bgColor = alert ? "bg-red-500" : "var(--primary)";
   return (
     <div
       className="h-2 rounded-full overflow-hidden"
@@ -166,9 +169,87 @@ function ProgressBar({
         className="h-full rounded-full transition-all duration-300"
         style={{
           width: `${Math.min(value, 100)}%`,
-          background: alert ? "#ef4444" : "var(--primary)",
+          background: bgColor,
         }}
       />
+    </div>
+  );
+}
+
+function getTrainingStatus(gpu: SystemMetrics["gpu"][0]) {
+  if (!gpu || gpu.usage === null || gpu.memory?.used === null) return null;
+  const highUtil = gpu.usage > 70;
+  const highVram = gpu.memory.total && (gpu.memory.used / gpu.memory.total) > 0.6;
+  if (highUtil && highVram) return { label: "Training", color: "text-green-500", icon: Zap, bg: "bg-green-500/20" };
+  if (highUtil) return { label: "Computing", color: "text-blue-500", icon: Activity, bg: "bg-blue-500/20" };
+  if (gpu.usage > 10) return { label: "Active", color: "text-yellow-500", icon: Activity, bg: "bg-yellow-500/20" };
+  return { label: "Idle", color: "text-[var(--muted-foreground)]", icon: Activity, bg: "" };
+}
+
+function getVramStatus(used: number | null, total: number | null) {
+  if (total === null || total === undefined || total === 0) {
+    return { percent: 0, status: "OK", color: "text-foreground", bgColor: "bg-primary" };
+  }
+  const percent = Math.round((used || 0) / total * 100);
+  if (percent > 90) return { percent, status: "CRITICAL", color: "text-red-500", bgColor: "bg-red-500" };
+  if (percent > 70) return { percent, status: "WARNING", color: "text-yellow-500", bgColor: "bg-yellow-500" };
+  return { percent, status: "OK", color: "text-foreground", bgColor: "bg-primary" };
+}
+
+function GpuMetricsPanel({ gpu }: { gpu: SystemMetrics["gpu"][0] }) {
+  return (
+    <div
+      className="p-3 rounded-lg border"
+      style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Video className="w-4 h-4 text-[var(--primary)]" />
+          <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+            {gpu.marketingName || gpu.name}
+          </span>
+        </div>
+        <div
+          className="text-xs px-2 py-0.5 rounded-full"
+          style={{ background: "var(--surface-2)", color: "var(--muted-foreground)" }}
+        >
+          {gpu.gfxVersion}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {gpu.usage !== null && gpu.usage !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Usage</span>
+            <div className="flex items-center gap-2">
+              <div className="w-24">
+                <ProgressBar value={gpu.usage} />
+              </div>
+              <span className="text-xs font-medium w-8" style={{ color: "var(--foreground)" }}>{gpu.usage}%</span>
+            </div>
+          </div>
+        )}
+        {gpu.memory?.total !== null && gpu.memory?.total !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>VRAM</span>
+            <div className="flex items-center gap-2">
+              <div className="w-24">
+                <ProgressBar value={(gpu.memory.used / gpu.memory.total) * 100} />
+              </div>
+              <span className="text-xs font-medium w-8" style={{ color: "var(--foreground)" }}>
+                {Math.round((gpu.memory.used / gpu.memory.total) * 100)}%
+              </span>
+            </div>
+          </div>
+        )}
+        {gpu.temperature !== null && gpu.temperature !== undefined && gpu.temperature > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Temp</span>
+            <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
+              {formatTemp(gpu.temperature)}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -220,22 +301,6 @@ function DashboardContent() {
   }
 
   const primaryGpu = metrics.gpu && metrics.gpu.length > 0 ? metrics.gpu[0] : null;
-
-  const getGpuStatus = () => {
-    if (!primaryGpu) return null;
-    const highUtil = primaryGpu.usage && primaryGpu.usage > 70;
-    const highVram =
-      primaryGpu.memory?.total &&
-      primaryGpu.memory?.used &&
-      primaryGpu.memory.used / primaryGpu.memory.total > 0.6;
-    if (highUtil && highVram) return { label: "Training", color: "text-green-500", bg: "bg-green-500/20" };
-    if (highUtil) return { label: "Computing", color: "text-blue-500", bg: "bg-blue-500/20" };
-    if (primaryGpu.usage && primaryGpu.usage > 10)
-      return { label: "Active", color: "text-yellow-500", bg: "bg-yellow-500/20" };
-    return { label: "Idle", color: "text-[var(--muted-foreground)]", bg: "" };
-  };
-
-  const gpuStatus = getGpuStatus();
 
   return (
     <div
@@ -460,21 +525,33 @@ function DashboardContent() {
                       <span>{primaryGpu.computeUnits} CUs</span>
                     </>
                   )}
+                  {primaryGpu.maxClockMHz !== undefined && primaryGpu.maxClockMHz > 0 && (
+                    <>
+                      <span
+                        className="w-1 h-1 rounded-full"
+                        style={{ background: "var(--muted-foreground)" }}
+                      />
+                      <span>{formatMHz(primaryGpu.maxClockMHz)}</span>
+                    </>
+                  )}
                 </>
               }
-              badge={
-                gpuStatus && (
+              badge={(() => {
+                const status = getTrainingStatus(primaryGpu);
+                if (!status) return null;
+                const StatusIcon = status.icon;
+                return (
                   <div
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border`}
-                    style={{ background: gpuStatus.bg, borderColor: "var(--border)" }}
+                    style={{ background: status.bg, borderColor: "var(--border)" }}
                   >
-                    <Activity className={`w-3.5 h-3.5 ${gpuStatus.color}`} />
-                    <span className={`text-xs font-medium ${gpuStatus.color}`}>
-                      {gpuStatus.label}
+                    <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
+                    <span className={`text-xs font-medium ${status.color}`}>
+                      {status.label}
                     </span>
                   </div>
-                )
-              }
+                );
+              })()}
             >
               <div className="mt-3 pt-3 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
                 {/* GPU Usage */}
@@ -501,65 +578,114 @@ function DashboardContent() {
                 )}
 
                 {/* VRAM */}
-                {primaryGpu.memory && primaryGpu.memory.total !== undefined && primaryGpu.memory.total > 0 && (
+                {primaryGpu.memory && primaryGpu.memory.total !== null && primaryGpu.memory.total !== undefined && (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MemoryStick className="w-4 h-4 text-[var(--primary)]" />
                       <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
                         VRAM
                       </span>
+                      {(() => {
+                        const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
+                        if (vramStatus.status === "CRITICAL") {
+                          return <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />;
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-32">
-                        <ProgressBar
-                          value={
-                            primaryGpu.memory.total
-                              ? (primaryGpu.memory.used / primaryGpu.memory.total) * 100
-                              : 0
-                          }
-                        />
+                        {(() => {
+                          const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
+                          return <ProgressBar value={vramStatus.percent} alert={vramStatus.status !== "OK"} />;
+                        })()}
                       </div>
-                      <span className="text-sm font-bold" style={{ color: "var(--foreground)" }}>
-                        {primaryGpu.memory.total
-                          ? `${Math.round((primaryGpu.memory.used / primaryGpu.memory.total) * 100)}%`
-                          : "N/A"}
+                      <span
+                        className="text-sm font-bold"
+                        style={{ color: getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null).color }}
+                      >
+                        {(() => {
+                          const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
+                          return `${vramStatus.percent}%`;
+                        })()}
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* VRAM Details */}
-                {primaryGpu.memory && primaryGpu.memory.total !== undefined && (
+                {primaryGpu.memory && primaryGpu.memory.total !== null && primaryGpu.memory.total !== undefined && (
                   <div
                     className="flex justify-between text-xs px-1"
                     style={{ color: "var(--muted-foreground)" }}
                   >
                     <span>Used: {formatGB(primaryGpu.memory.used || 0)}</span>
                     <span>Total: {formatGB(primaryGpu.memory.total)}</span>
+                    {(() => {
+                      const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
+                      if (vramStatus.status !== "OK") {
+                        return <span className={vramStatus.color}>{vramStatus.status}</span>;
+                      }
+                      return null;
+                    })()}
                   </div>
                 )}
 
                 {/* GPU Stats */}
-                <div className="flex flex-wrap gap-4">
-                  {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
-                      <Thermometer className="w-3 h-3" />
-                      <span>{formatTemp(primaryGpu.temperature)}</span>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  {(primaryGpu.temperature !== null && primaryGpu.temperature !== undefined && primaryGpu.temperature > 0) ||
+                   (primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0) ? (
+                    <div className="flex items-center gap-3">
+                      {primaryGpu.temperature !== null && primaryGpu.temperature !== undefined && primaryGpu.temperature > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <Thermometer className="w-3 h-3" />
+                          <span>{formatTemp(primaryGpu.temperature)}</span>
+                        </div>
+                      )}
+                      {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <Zap className="w-3 h-3" />
+                          <span>{formatMHz(primaryGpu.currentClockMHz)}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {primaryGpu.currentClockMHz > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
-                      <Zap className="w-3 h-3" />
-                      <span>{formatMHz(primaryGpu.currentClockMHz)}</span>
-                    </div>
-                  )}
-                  {primaryGpu.power !== null && primaryGpu.power > 0 && (
+                  ) : null}
+                  {primaryGpu.power != null && primaryGpu.power > 0 && (
                     <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
                       <Activity className="w-3 h-3" />
                       <span>{primaryGpu.power.toFixed(1)}W</span>
                     </div>
                   )}
                 </div>
+
+                {/* ROCm Powered By */}
+                {primaryGpu.gfxVersion && primaryGpu.gfxVersion !== "N/A" && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]">
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                      Powered by ROCm
+                    </div>
+                  </div>
+                )}
+
+                {/* Hardware Details */}
+                {(primaryGpu.deviceId || primaryGpu.driverVersion) && (
+                  <div className="pt-2 border-t border-[var(--border)]">
+                    <div className="space-y-1">
+                      {primaryGpu.deviceId && (
+                        <div className="flex justify-between text-xs">
+                          <span style={{ color: "var(--muted-foreground)" }}>Device ID:</span>
+                          <span className="font-mono" style={{ color: "var(--foreground)" }}>{primaryGpu.deviceId}</span>
+                        </div>
+                      )}
+                      {primaryGpu.driverVersion && (
+                        <div className="flex justify-between text-xs">
+                          <span style={{ color: "var(--muted-foreground)" }}>Driver:</span>
+                          <span className="font-mono" style={{ color: "var(--foreground)" }}>{primaryGpu.driverVersion}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </ProminentCard>
           )}
@@ -580,7 +706,7 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* Disk & Network */}
+          {/* Main Metrics List */}
           <div className="mt-4 space-y-4">
             <MetricRow
               icon={HardDrive}
@@ -597,12 +723,29 @@ function DashboardContent() {
               subtext={`↓ ${formatSpeed(metrics.network.total.rxSec)} / ↑ ${formatSpeed(metrics.network.total.txSec)}`}
             />
           </div>
+
+          {/* Additional GPUs */}
+          {metrics.gpu.length > 1 && (
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <div className="flex items-center gap-2 mb-3">
+                <Video className="w-4 h-4 text-[var(--primary)]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
+                  Additional GPUs
+                </h3>
+              </div>
+              <div className="space-y-2">
+                {metrics.gpu.slice(1).map((gpu) => (
+                  <GpuMetricsPanel key={gpu.index} gpu={gpu} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
       {/* Footer */}
       <footer className="text-center py-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
-        System Metrics Plus • Powered by Apache ECharts
+        System Metrics Plus
       </footer>
     </div>
   );
