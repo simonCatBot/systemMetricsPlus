@@ -199,17 +199,17 @@ function DashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">System Metrics Plus</h1>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                 {metrics?.os.hostname || "Loading..."} • {metrics?.os.distro || ""} {metrics?.os.arch || ""}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                 {lastUpdate
                   ? `Updated: ${lastUpdate.toLocaleTimeString()}`
                   : "Connecting..."}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>
                 Refresh: {UPDATE_INTERVAL / 1000}s
               </p>
             </div>
@@ -221,11 +221,12 @@ function DashboardContent() {
               <button
                 key={tab.id}
                 onClick={() => toggleTab(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
+                style={
                   activeTab === tab.id
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
-                }`}
+                    ? { background: 'var(--primary)', color: 'var(--primary-foreground)' }
+                    : { background: 'var(--surface-2)', color: 'var(--muted-foreground)' }
+                }
               >
                 <span className="mr-1">{tab.icon}</span>
                 {tab.label}

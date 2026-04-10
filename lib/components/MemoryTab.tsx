@@ -1,8 +1,20 @@
 "use client";
 
-import { GaugeChartComponent, EChartsWrapper } from "./EChartsWrapper";
+import { EChartsWrapper, GaugeChartComponent } from "./EChartsWrapper";
 import type { ChartDataPoint } from "./charts";
 import type { MemoryMetrics } from "@/types/metrics";
+
+// Color palette from CSS variables
+const colors = {
+  primary: '#FF4D4D',     // Coral Red
+  accent: '#00e5cc',      // Teal
+  warning: '#f59e0b',     // Amber
+  info: '#3b82f6',        // Blue
+  purple: '#8b5cf6',     // Purple
+  success: '#22c55e',    // Green
+  text: '#ededed',
+  muted: '#737373',
+};
 
 interface MemoryHistory {
   usage: ChartDataPoint[];
@@ -18,7 +30,7 @@ export default function MemoryTab({
 }) {
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64" style={{ color: 'var(--muted-foreground)' }}>
         Loading memory metrics...
       </div>
     );
@@ -29,26 +41,26 @@ export default function MemoryTab({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+      <div className="card p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Memory</h2>
-            <p className="text-sm text-gray-400">
+            <h2 className="text-lg font-semibold" style={{ color: colors.text }}>Memory</h2>
+            <p className="text-sm" style={{ color: colors.muted }}>
               Physical RAM
             </p>
           </div>
           <div className="flex items-center gap-8">
             <div className="text-center">
-              <p className="text-2xl font-bold text-cyan-400">{total.toFixed(1)} GB</p>
-              <p className="text-xs text-gray-500">Total</p>
+              <p className="text-2xl font-bold" style={{ color: colors.info }}>{total.toFixed(1)} GB</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Total</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-400">{used.toFixed(1)} GB</p>
-              <p className="text-xs text-gray-500">Used</p>
+              <p className="text-2xl font-bold" style={{ color: colors.success }}>{used.toFixed(1)} GB</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Used</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-400">{free.toFixed(1)} GB</p>
-              <p className="text-xs text-gray-500">Free</p>
+              <p className="text-2xl font-bold" style={{ color: colors.muted }}>{free.toFixed(1)} GB</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Free</p>
             </div>
           </div>
         </div>
@@ -56,44 +68,44 @@ export default function MemoryTab({
 
       {/* Memory Gauges */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={usage}
             name="RAM"
-            color="#00b894"
+            color={colors.accent}
             size={100}
           />
         </div>
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={(used / total) * 100}
             name="Used"
             max={100}
-            color="#e17055"
+            color={colors.success}
             size={100}
           />
-          <p className="text-xs text-gray-400 mt-2">{used.toFixed(1)} GB</p>
+          <p className="text-xs mt-2" style={{ color: colors.muted }}>{used.toFixed(1)} GB</p>
         </div>
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={(free / total) * 100}
             name="Free"
             max={100}
-            color="#0984e3"
+            color={colors.info}
             size={100}
           />
-          <p className="text-xs text-gray-400 mt-2">{free.toFixed(1)} GB</p>
+          <p className="text-xs mt-2" style={{ color: colors.muted }}>{free.toFixed(1)} GB</p>
         </div>
         {swapTotal > 0 && (
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+          <div className="card p-4 flex flex-col items-center">
             <GaugeChartComponent
               value={swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0}
               name="Swap"
               max={100}
-              color="#6c5ce7"
+              color={colors.purple}
               size={100}
             />
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs mt-2" style={{ color: colors.muted }}>
               {swapUsed.toFixed(1)} / {swapTotal.toFixed(1)} GB
             </p>
           </div>
@@ -101,14 +113,14 @@ export default function MemoryTab({
       </div>
 
       {/* Memory Usage Chart */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Memory Usage History</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Memory Usage History</h3>
         <EChartsWrapper
           series={[
             {
               name: "Usage %",
               data: history.usage,
-              color: "#00b894",
+              color: colors.accent,
             },
           ]}
           height={200}
@@ -117,37 +129,37 @@ export default function MemoryTab({
       </div>
 
       {/* Memory Breakdown Bar */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Memory Breakdown</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Memory Breakdown</h3>
         <div className="space-y-3">
           <div>
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
+            <div className="flex justify-between text-xs mb-1" style={{ color: colors.muted }}>
               <span>Used</span>
               <span>{used.toFixed(1)} GB ({usage}%)</span>
             </div>
-            <div className="h-4 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
               <div
-                className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full"
-                style={{ width: `${usage}%` }}
+                className="h-full rounded-full"
+                style={{ width: `${usage}%`, background: `linear-gradient(to right, ${colors.success}, ${colors.accent})` }}
               />
             </div>
           </div>
-          <div>
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>Swap</span>
-              <span>
-                {swapUsed.toFixed(1)} / {swapTotal.toFixed(1)} GB
-              </span>
-            </div>
-            {swapTotal > 0 && (
-              <div className="h-4 bg-gray-800 rounded-full overflow-hidden">
+          {swapTotal > 0 && (
+            <div>
+              <div className="flex justify-between text-xs mb-1" style={{ color: colors.muted }}>
+                <span>Swap</span>
+                <span>
+                  {swapUsed.toFixed(1)} / {swapTotal.toFixed(1)} GB
+                </span>
+              </div>
+              <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                 <div
-                  className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full"
-                  style={{ width: `${(swapUsed / swapTotal) * 100}%` }}
+                  className="h-full rounded-full"
+                  style={{ width: `${(swapUsed / swapTotal) * 100}%`, background: colors.purple }}
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

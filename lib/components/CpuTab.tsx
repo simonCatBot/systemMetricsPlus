@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { EChartsWrapper, GaugeChartComponent } from "./EChartsWrapper";
 import type { ChartDataPoint } from "./charts";
 import type { CpuMetrics } from "@/types/metrics";
@@ -19,6 +18,18 @@ function formatLoad(load: number): string {
   return load.toFixed(2);
 }
 
+// Color palette from CSS variables
+const colors = {
+  primary: '#FF4D4D',     // Coral Red
+  accent: '#00e5cc',      // Teal
+  warning: '#f59e0b',     // Amber
+  info: '#3b82f6',        // Blue
+  purple: '#8b5cf6',     // Purple
+  success: '#22c55e',    // Green
+  text: '#ededed',
+  muted: '#737373',
+};
+
 export default function CpuTab({
   data,
   history,
@@ -28,7 +39,7 @@ export default function CpuTab({
 }) {
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64" style={{ color: 'var(--muted-foreground)' }}>
         Loading CPU metrics...
       </div>
     );
@@ -40,26 +51,26 @@ export default function CpuTab({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+      <div className="card p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">{name}</h2>
-            <p className="text-sm text-gray-400">
+            <h2 className="text-lg font-semibold" style={{ color: colors.text }}>{name}</h2>
+            <p className="text-sm" style={{ color: colors.muted }}>
               {physicalCores} cores, {logicalCores} threads
             </p>
           </div>
           <div className="flex items-center gap-6">
             {temperature !== null && (
               <div className="text-center">
-                <p className="text-2xl font-bold text-orange-400">
+                <p className="text-2xl font-bold" style={{ color: colors.warning }}>
                   {temperature}°C
                 </p>
-                <p className="text-xs text-gray-500">Temperature</p>
+                <p className="text-xs" style={{ color: colors.muted }}>Temperature</p>
               </div>
             )}
             <div className="text-center">
-              <p className="text-2xl font-bold text-cyan-400">{usage}%</p>
-              <p className="text-xs text-gray-500">Usage</p>
+              <p className="text-2xl font-bold" style={{ color: colors.accent }}>{usage}%</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Usage</p>
             </div>
           </div>
         </div>
@@ -67,61 +78,61 @@ export default function CpuTab({
 
       {/* Gauges row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={usage}
             name="CPU"
-            color="#00b894"
+            color={colors.accent}
             size={100}
           />
         </div>
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={Math.min(load1 * 100 / logicalCores, 100)}
             name="Load 1m"
             max={100}
-            color="#0984e3"
+            color={colors.info}
             size={100}
           />
-          <p className="text-xs text-gray-400 mt-2 font-mono">
+          <p className="text-xs mt-2 font-mono" style={{ color: colors.muted }}>
             {formatLoad(load1)}
           </p>
         </div>
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={Math.min(load5 * 100 / logicalCores, 100)}
             name="Load 5m"
             max={100}
-            color="#6c5ce7"
+            color={colors.purple}
             size={100}
           />
-          <p className="text-xs text-gray-400 mt-2 font-mono">
+          <p className="text-xs mt-2 font-mono" style={{ color: colors.muted }}>
             {formatLoad(load5)}
           </p>
         </div>
-        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex flex-col items-center">
+        <div className="card p-4 flex flex-col items-center">
           <GaugeChartComponent
             value={Math.min(load15 * 100 / logicalCores, 100)}
             name="Load 15m"
             max={100}
-            color="#fdcb6e"
+            color={colors.warning}
             size={100}
           />
-          <p className="text-xs text-gray-400 mt-2 font-mono">
+          <p className="text-xs mt-2 font-mono" style={{ color: colors.muted }}>
             {formatLoad(load15)}
           </p>
         </div>
       </div>
 
       {/* CPU Usage Chart */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">CPU Usage History</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>CPU Usage History</h3>
         <EChartsWrapper
           series={[
             {
               name: "CPU Usage %",
               data: history.usage,
-              color: "#00b894",
+              color: colors.accent,
             },
           ]}
           height={200}
@@ -130,24 +141,24 @@ export default function CpuTab({
       </div>
 
       {/* Load Average Chart */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Load Average</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Load Average</h3>
         <EChartsWrapper
           series={[
             {
               name: "1 min",
               data: history.load1m,
-              color: "#0984e3",
+              color: colors.info,
             },
             {
               name: "5 min",
               data: history.load5m,
-              color: "#6c5ce7",
+              color: colors.purple,
             },
             {
               name: "15 min",
               data: history.load15m,
-              color: "#fdcb6e",
+              color: colors.warning,
             },
           ]}
           height={180}
@@ -156,8 +167,8 @@ export default function CpuTab({
       </div>
 
       {/* Per-Core Usage */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Per-Core Usage</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Per-Core Usage</h3>
         <EChartsWrapper
           series={history.coreLoads.map((core, i) => ({
             name: `Core ${i}`,

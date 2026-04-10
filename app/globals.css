@@ -1,26 +1,109 @@
 @import "tailwindcss";
 
+/* System Metrics Plus - OpenClaw-inspired Color Scheme */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Colors */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  
+  /* Card/Panel Colors */
+  --card: #141414;
+  --card-foreground: #ededed;
+  --popover: #141414;
+  --popover-foreground: #ededed;
+  
+  /* Primary - Coral Red */
+  --primary: #FF4D4D;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary */
+  --secondary: #1f1f1f;
+  --secondary-foreground: #ededed;
+  
+  /* Muted */
+  --muted: #1f1f1f;
+  --muted-foreground: #737373;
+  
+  /* Accent - Teal */
+  --accent: #00e5cc;
+  --accent-foreground: #0a0a0a;
+  
+  /* Destructive */
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  
+  /* Border & Input */
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #FF4D4D;
+  
+  /* Chart Colors */
+  --chart-1: #FF4D4D;
+  --chart-2: #00e5cc;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #06b6d4;
+  
+  /* Surface Colors */
+  --surface-0: #0a0a0a;
+  --surface-1: #141414;
+  --surface-2: #1f1f1f;
+  --surface-3: #2a2a2a;
+  
+  /* Status Colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  
+  /* Radius */
+  --radius: 0.75rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
+
+/* Card Component */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Status Colors */
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-error { color: var(--error); }
+.text-info { color: var(--info); }
+
+/* Gauge Colors */
+.gauge-cpu { color: #00e5cc; }
+.gauge-memory { color: #22c55e; }
+.gauge-gpu { color: #FF4D4D; }
+.gauge-network { color: #3b82f6; }
+.gauge-disk { color: #f59e0b; }

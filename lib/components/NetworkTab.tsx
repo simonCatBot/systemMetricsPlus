@@ -4,6 +4,18 @@ import { EChartsWrapper } from "./EChartsWrapper";
 import type { ChartDataPoint } from "./charts";
 import type { NetworkMetrics } from "@/types/metrics";
 
+// Color palette from CSS variables
+const colors = {
+  primary: '#FF4D4D',     // Coral Red
+  accent: '#00e5cc',      // Teal
+  warning: '#f59e0b',     // Amber
+  info: '#3b82f6',        // Blue
+  purple: '#8b5cf6',     // Purple
+  success: '#22c55e',    // Green
+  text: '#ededed',
+  muted: '#737373',
+};
+
 interface NetworkHistory {
   download: ChartDataPoint[];
   upload: ChartDataPoint[];
@@ -26,7 +38,7 @@ export default function NetworkTab({
 }) {
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="flex items-center justify-center h-64" style={{ color: 'var(--muted-foreground)' }}>
         Loading network metrics...
       </div>
     );
@@ -37,45 +49,45 @@ export default function NetworkTab({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+      <div className="card p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Network</h2>
-            <p className="text-sm text-gray-400">
+            <h2 className="text-lg font-semibold" style={{ color: colors.text }}>Network</h2>
+            <p className="text-sm" style={{ color: colors.muted }}>
               {interfaces.length} interface{interfaces.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex items-center gap-8">
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-400">
+              <p className="text-2xl font-bold" style={{ color: colors.success }}>
                 {formatBytes(total.rxSec)}/s
               </p>
-              <p className="text-xs text-gray-500">Download</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Download</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold" style={{ color: colors.info }}>
                 {formatBytes(total.txSec)}/s
               </p>
-              <p className="text-xs text-gray-500">Upload</p>
+              <p className="text-xs" style={{ color: colors.muted }}>Upload</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Network Speed Chart */}
-      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-        <h3 className="text-sm font-medium text-gray-300 mb-4">Network Activity</h3>
+      <div className="card p-4">
+        <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>Network Activity</h3>
         <EChartsWrapper
           series={[
             {
               name: "Download",
               data: history.download,
-              color: "#00b894",
+              color: colors.success,
             },
             {
               name: "Upload",
               data: history.upload,
-              color: "#0984e3",
+              color: colors.info,
             },
           ]}
           height={200}
@@ -88,40 +100,40 @@ export default function NetworkTab({
         {interfaces.map((iface) => (
           <div
             key={iface.name}
-            className="bg-gray-900 rounded-xl p-4 border border-gray-800"
+            className="card p-4"
           >
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-white truncate">{iface.name}</h4>
+              <h4 className="font-medium truncate" style={{ color: colors.text }}>{iface.name}</h4>
               {iface.speed > 0 && (
-                <span className="text-xs text-gray-500">{iface.speed} Mbps</span>
+                <span className="text-xs" style={{ color: colors.muted }}>{iface.speed} Mbps</span>
               )}
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">IPv4</span>
-                <span className="font-mono text-green-400">{iface.ip4}</span>
+                <span style={{ color: colors.muted }}>IPv4</span>
+                <span className="font-mono" style={{ color: colors.success }}>{iface.ip4}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Download</span>
-                <span className="font-mono text-green-400">
+                <span style={{ color: colors.muted }}>Download</span>
+                <span className="font-mono" style={{ color: colors.success }}>
                   {formatBytes(iface.rxSec)}/s
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Upload</span>
-                <span className="font-mono text-blue-400">
+                <span style={{ color: colors.muted }}>Upload</span>
+                <span className="font-mono" style={{ color: colors.info }}>
                   {formatBytes(iface.txSec)}/s
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Total RX</span>
-                <span className="font-mono text-gray-300">
+                <span style={{ color: colors.muted }}>Total RX</span>
+                <span className="font-mono" style={{ color: colors.muted }}>
                   {formatBytes(iface.rxBytes)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Total TX</span>
-                <span className="font-mono text-gray-300">
+                <span style={{ color: colors.muted }}>Total TX</span>
+                <span className="font-mono" style={{ color: colors.muted }}>
                   {formatBytes(iface.txBytes)}
                 </span>
               </div>
