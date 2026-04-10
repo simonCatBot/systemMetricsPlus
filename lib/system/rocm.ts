@@ -34,9 +34,19 @@ export interface ROCmGPUInfo {
   };
   usage?: number; // percentage
   temperature?: number; // celsius
+  temperatureHotspot?: number; // celsius
+  temperatureMem?: number; // celsius
   power?: number; // watts
   currentClockMHz?: number;
   memoryClockMHz?: number;
+  vramType?: string;
+  vramBitWidth?: number;
+  eccCorrectable?: number;
+  eccUncorrectable?: number;
+  pcieWidth?: number;
+  pcieSpeed?: string;
+  isThrottling?: boolean;
+  isProchot?: boolean;
 }
 
 interface ROCmSystemInfo {
@@ -98,6 +108,34 @@ async function findRocmSmi(): Promise<string | undefined> {
   try {
     await execAsync("which rocm-smi");
     return "rocm-smi";
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Find amd-smi binary
+ */
+async function findAmdSmi(): Promise<string | undefined> {
+  const paths = [
+    "/usr/bin/amd-smi",
+    "/opt/rocm/bin/amd-smi",
+    "/opt/rocm/latest/bin/amd-smi",
+  ];
+
+  for (const path of paths) {
+    try {
+      await execAsync(`test -x ${path}`);
+      return path;
+    } catch {
+      continue;
+    }
+  }
+
+  // Try PATH
+  try {
+    await execAsync("which amd-smi");
+    return "amd-smi";
   } catch {
     return undefined;
   }
@@ -599,6 +637,187 @@ async function getGpuUsage(rocmSmiPath: string): Promise<
 }
 
 /**
+ * Get enhanced GPU metrics from amd-smi
+ * This provides more comprehensive data than rocm-smi
+ */
+async function getAmdSmiMetrics(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
+  const metricsMap = new Map<number, Partial<ROCmGPUInfo>>();
+
+  try {
+    // Get metric output
+    const { stdout } = await execAsync("amd-smi metric 2>/dev/null");
+
+    // Parse GPU sections
+    const gpuSections = stdout.split(/^GPU:/m);
+
+    for (const section of gpuSections) {
+      if (!section.trim()) continue;
+
+      const gpuMatch = section.match(/(\d+)/);
+      if (!gpuMatch) continue;
+      const index = parseInt(gpuMatch[1], 10);
+
+      const metrics: Partial<ROCmGPUInfo> = { index };
+
+      // Temperature - EDGE
+      const edgeMatch = section.match(/EDGE:\s*([\d.]+)\s*°?C?/i);
+      if (edgeMatch) {
+        metrics.temperature = Math.round(parseFloat(edgeMatch[1]));
+      }
+
+      // Temperature - HOTSPOT
+      const hotspotMatch = section.match(/HOTSPOT:\s*([\d.]+)\s*°?C?/i);
+      if (hotspotMatch) {
+        metrics.temperatureHotspot = Math.round(parseFloat(hotspotMatch[1]));
+      }
+
+      // Temperature - MEM
+      const memTempMatch = section.match(/MEM:\s*([\d.]+)\s*°?C?/i);
+      if (memTempMatch) {
+        metrics.temperatureMem = Math.round(parseFloat(memTempMatch[1]));
+      }
+
+      // Power
+      const powerMatch = section.match(/SOCKET_POWER:\s*([\d.]+)\s*W?/i);
+      if (powerMatch) {
+        metrics.power = parseFloat(powerMatch[1]);
+      }
+
+      // Clock - GFX
+      const clockMatch = section.match(/GFX:\s*([\d.]+)\s*MHz/i);
+      if (clockMatch) {
+        metrics.currentClockMHz = Math.round(parseFloat(clockMatch[1]));
+      }
+
+      // MEM USAGE
+      const vramTotalMatch = section.match(/TOTAL_VRAM:\s*(\d+)\s*MB/i);
+      const vramUsedMatch = section.match(/USED_VRAM:\s*(\d+)\s*MB/i);
+
+      if (vramTotalMatch) {
+        const totalMB = parseInt(vramTotalMatch[1], 10);
+        const usedMB = vramUsedMatch ? parseInt(vramUsedMatch[1], 10) : 0;
+        metrics.memory = {
+          total: Math.round((totalMB / 1024) * 100) / 100, // Convert to GB
+          used: Math.round((usedMB / 1024) * 100) / 100,
+        };
+      }
+
+      // PCIe Width
+      const pcieWidthMatch = section.match(/WIDTH:\s*x(\d+)/i);
+      if (pcieWidthMatch) {
+        metrics.pcieWidth = parseInt(pcieWidthMatch[1], 10);
+      }
+
+      // PCIe Speed
+      const pcieSpeedMatch = section.match(/SPEED:\s*(Gen\d+x\d+)/i);
+      if (pcieSpeedMatch) {
+        metrics.pcieSpeed = pcieSpeedMatch[1];
+      }
+
+      // ECC
+      const eccCorrMatch = section.match(/TOTAL_CORRECTABLE_COUNT:\s*(\d+)/i);
+      const eccUncorrMatch = section.match(/TOTAL_UNCORRECTABLE_COUNT:\s*(\d+)/i);
+      if (eccCorrMatch) {
+        metrics.eccCorrectable = parseInt(eccCorrMatch[1], 10);
+      }
+      if (eccUncorrMatch) {
+        metrics.eccUncorrectable = parseInt(eccUncorrMatch[1], 10);
+      }
+
+      // Throttle status
+      const throttleMatch = section.match(/THROTTLE_STATUS:\s*(\w+)/i);
+      if (throttleMatch && throttleMatch[1].toLowerCase() !== "n/a") {
+        metrics.isThrottling = throttleMatch[1].toLowerCase() === "yes" || throttleMatch[1].toLowerCase() === "true";
+      }
+
+      metricsMap.set(index, metrics);
+    }
+  } catch (error) {
+    console.warn("amd-smi metric failed:", error);
+  }
+
+  return metricsMap;
+}
+
+/**
+ * Get enhanced static info from amd-smi static
+ */
+async function getAmdSmiStatic(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
+  const staticMap = new Map<number, Partial<ROCmGPUInfo>>();
+
+  try {
+    const { stdout } = await execAsync("amd-smi static 2>/dev/null");
+
+    // Parse GPU sections
+    const gpuSections = stdout.split(/^GPU:/m);
+
+    for (const section of gpuSections) {
+      if (!section.trim()) continue;
+
+      const gpuMatch = section.match(/(\d+)/);
+      if (!gpuMatch) continue;
+      const index = parseInt(gpuMatch[1], 10);
+
+      const info: Partial<ROCmGPUInfo> = { index };
+
+      // MARKET_NAME
+      const nameMatch = section.match(/MARKET_NAME:\s*(.+)/i);
+      if (nameMatch) {
+        info.marketingName = nameMatch[1].trim();
+      }
+
+      // DEVICE_ID
+      const deviceIdMatch = section.match(/DEVICE_ID:\s*(0x[\dA-Fa-f]+)/i);
+      if (deviceIdMatch) {
+        info.deviceId = deviceIdMatch[1].trim();
+      }
+
+      // NUM_COMPUTE_UNITS
+      const cuMatch = section.match(/NUM_COMPUTE_UNITS:\s*(\d+)/i);
+      if (cuMatch) {
+        info.computeUnits = parseInt(cuMatch[1], 10);
+      }
+
+      // TARGET_GRAPHICS_VERSION (gfxVersion)
+      const gfxMatch = section.match(/TARGET_GRAPHICS_VERSION:\s*(gfx[\dA-Fa-f]+)/i);
+      if (gfxMatch) {
+        info.gfxVersion = gfxMatch[1].trim();
+      }
+
+      // BDF (PCI Bus)
+      const bdfMatch = section.match(/BDF:\s*([\dA-Fa-f.:]+)/i);
+      if (bdfMatch) {
+        info.pciBus = bdfMatch[1].trim();
+      }
+
+      // VRAM TYPE
+      const vramTypeMatch = section.match(/TYPE:\s*([\w]+)/i);
+      if (vramTypeMatch) {
+        info.vramType = vramTypeMatch[1].trim();
+      }
+
+      // VRAM BIT WIDTH
+      const bitWidthMatch = section.match(/BIT_WIDTH:\s*(\d+)/i);
+      if (bitWidthMatch) {
+        info.vramBitWidth = parseInt(bitWidthMatch[1], 10);
+      }
+
+      // Max clock
+      const maxClockMatch = section.match(/LEVEL 2:\s*(\d+)\s*MHz/i);
+      if (maxClockMatch) {
+        info.maxClockMHz = parseInt(maxClockMatch[1], 10);
+      }
+
+      staticMap.set(index, info);
+    }
+  } catch (error) {
+    console.warn("amd-smi static failed:", error);
+  }
+
+  return staticMap;
+}
+
+/**
  * Get comprehensive GPU info from rocm-smi -a
  */
 async function getComprehensiveGpuInfo(rocmSmiPath: string): Promise<{
@@ -736,6 +955,80 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
               used: metrics.memoryUsed || 0,
             };
           }
+        }
+      }
+    }
+
+    // Get additional metrics from amd-smi (more comprehensive)
+    const amdSmiMetrics = await getAmdSmiMetrics();
+    const amdSmiStatic = await getAmdSmiStatic();
+
+    for (const gpu of gpus) {
+      const amdMetrics = amdSmiMetrics.get(gpu.index);
+      const amdStatic = amdSmiStatic.get(gpu.index);
+
+      // Merge amd-smi metrics (override less accurate values)
+      if (amdMetrics) {
+        if (amdMetrics.temperature !== undefined) {
+          gpu.temperature = amdMetrics.temperature;
+        }
+        if (amdMetrics.temperatureHotspot !== undefined) {
+          gpu.temperatureHotspot = amdMetrics.temperatureHotspot;
+        }
+        if (amdMetrics.temperatureMem !== undefined) {
+          gpu.temperatureMem = amdMetrics.temperatureMem;
+        }
+        if (amdMetrics.power !== undefined) {
+          gpu.power = amdMetrics.power;
+        }
+        if (amdMetrics.currentClockMHz !== undefined) {
+          gpu.currentClockMHz = amdMetrics.currentClockMHz;
+        }
+        if (amdMetrics.memory) {
+          gpu.memory = amdMetrics.memory;
+        }
+        if (amdMetrics.pcieWidth !== undefined) {
+          gpu.pcieWidth = amdMetrics.pcieWidth;
+        }
+        if (amdMetrics.pcieSpeed !== undefined) {
+          gpu.pcieSpeed = amdMetrics.pcieSpeed;
+        }
+        if (amdMetrics.eccCorrectable !== undefined) {
+          gpu.eccCorrectable = amdMetrics.eccCorrectable;
+        }
+        if (amdMetrics.eccUncorrectable !== undefined) {
+          gpu.eccUncorrectable = amdMetrics.eccUncorrectable;
+        }
+        if (amdMetrics.isThrottling !== undefined) {
+          gpu.isThrottling = amdMetrics.isThrottling;
+        }
+      }
+
+      // Merge amd-smi static info (override with more accurate values)
+      if (amdStatic) {
+        if (amdStatic.marketingName) {
+          gpu.marketingName = amdStatic.marketingName;
+        }
+        if (amdStatic.deviceId) {
+          gpu.deviceId = amdStatic.deviceId;
+        }
+        if (amdStatic.computeUnits) {
+          gpu.computeUnits = amdStatic.computeUnits;
+        }
+        if (amdStatic.gfxVersion) {
+          gpu.gfxVersion = amdStatic.gfxVersion;
+        }
+        if (amdStatic.pciBus) {
+          gpu.pciBus = amdStatic.pciBus;
+        }
+        if (amdStatic.vramType) {
+          gpu.vramType = amdStatic.vramType;
+        }
+        if (amdStatic.vramBitWidth) {
+          gpu.vramBitWidth = amdStatic.vramBitWidth;
+        }
+        if (amdStatic.maxClockMHz) {
+          gpu.maxClockMHz = amdStatic.maxClockMHz;
         }
       }
     }

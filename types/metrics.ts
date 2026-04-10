@@ -31,6 +31,8 @@ export interface GpuMetrics {
     used: number;
   };
   temperature: number | null;
+  temperatureHotspot?: number;
+  temperatureMem?: number;
   power: number | null;
   driverVersion: string;
   gfxVersion: string;
@@ -41,6 +43,12 @@ export interface GpuMetrics {
   memoryClockMHz?: number;
   vbiosVersion?: string;
   pciBus?: string;
+  vramType?: string;
+  vramBitWidth?: number;
+  pcieWidth?: number;
+  pcieSpeed?: string;
+  eccCorrectable?: number;
+  eccUncorrectable?: number;
   isThrottling?: boolean;
 }
 

@@ -408,13 +408,27 @@ function GpuColumn({
         </div>
       </div>
 
-      {/* GPU Stats Row */}
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+      {/* GPU Stats Row - Expanded */}
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
         {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className={`w-3 h-3 ${isThrottling ? "text-red-500" : ""}`} />
             <span className={isThrottling ? "text-red-500" : ""}>{formatTemp(primaryGpu.temperature)}</span>
             {isThrottling && <span className="text-red-500 text-[10px]">⚠</span>}
+          </div>
+        )}
+        {primaryGpu.temperatureHotspot !== undefined && primaryGpu.temperatureHotspot > 0 && (
+          <div className="flex items-center gap-1">
+            <Thermometer className={`w-3 h-3 ${primaryGpu.temperatureHotspot > 83 ? "text-red-500" : "text-orange-500"}`} />
+            <span className={primaryGpu.temperatureHotspot > 83 ? "text-red-500" : "text-orange-500"}>
+              Hot: {formatTemp(primaryGpu.temperatureHotspot)}
+            </span>
+          </div>
+        )}
+        {primaryGpu.temperatureMem !== undefined && primaryGpu.temperatureMem > 0 && (
+          <div className="flex items-center gap-1">
+            <MemoryStick className="w-3 h-3 text-cyan-500" />
+            <span className="text-cyan-500">Mem: {formatTemp(primaryGpu.temperatureMem)}</span>
           </div>
         )}
         {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0 && (
@@ -435,7 +449,33 @@ function GpuColumn({
             <span>{formatMHz(primaryGpu.memoryClockMHz)}</span>
           </div>
         )}
+        {(primaryGpu.pcieWidth !== undefined || primaryGpu.pcieSpeed) && (
+          <div className="flex items-center gap-1">
+            <Activity className="w-3 h-3" />
+            <span>
+              PCIe {primaryGpu.pcieWidth ? `x${primaryGpu.pcieWidth}` : ""} {primaryGpu.pcieSpeed || ""}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* ECC Errors Row */}
+      {(primaryGpu.eccCorrectable !== undefined || primaryGpu.eccUncorrectable !== undefined) && (
+        <div className="flex flex-wrap gap-3 text-xs mb-3">
+          {primaryGpu.eccCorrectable !== undefined && (
+            <div className={`flex items-center gap-1 ${primaryGpu.eccCorrectable > 0 ? "text-yellow-500" : "text-muted-foreground"}`}>
+              <span>ECC Corr:</span>
+              <span className="font-mono">{primaryGpu.eccCorrectable}</span>
+            </div>
+          )}
+          {primaryGpu.eccUncorrectable !== undefined && (
+            <div className={`flex items-center gap-1 ${(primaryGpu.eccUncorrectable ?? 0) > 0 ? "text-red-500" : "text-muted-foreground"}`}>
+              <span>ECC Uncorr:</span>
+              <span className="font-mono">{primaryGpu.eccUncorrectable}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ROCm Powered By */}
       {rocmDetected && (
@@ -489,6 +529,12 @@ function GpuColumn({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">PCI Bus:</span>
                 <span className="font-mono text-foreground">{primaryGpu.pciBus}</span>
+              </div>
+            )}
+            {primaryGpu.vramType && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">VRAM Type:</span>
+                <span className="font-mono text-foreground">{primaryGpu.vramType} {primaryGpu.vramBitWidth ? `(${primaryGpu.vramBitWidth}-bit)` : ""}</span>
               </div>
             )}
             {primaryGpu.maxClockMHz !== undefined && primaryGpu.maxClockMHz > 0 && (
