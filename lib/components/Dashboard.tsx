@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
+import Image from "next/image";
 import type { TabId } from "./TabContext";
 
 const UPDATE_INTERVAL = 2000;
@@ -812,7 +813,7 @@ function DashboardContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-primary" />
+                <Image src="/logo.svg" alt="Logo" width={24} height={24} className="w-6 h-6" />
                 <h1 className="text-lg font-semibold text-foreground">System Metrics</h1>
               </div>
               <span
