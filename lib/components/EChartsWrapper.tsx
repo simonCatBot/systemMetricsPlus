@@ -121,7 +121,7 @@ export function EChartsWrapper({
         smooth: true,
         lineStyle: {
           width: 2,
-          color: s.color,
+          color: s.color || "#5470c6",
         },
         areaStyle: s.color
           ? {
