@@ -64,6 +64,8 @@ interface GpuOutput {
   usage: number;
   memory: { total: number; used: number };
   temperature: number | null;
+  temperatureHotspot?: number | null;
+  temperatureMem?: number | null;
   power: number | null;
   driverVersion: string;
   gfxVersion: string;
@@ -71,9 +73,15 @@ interface GpuOutput {
   computeUnits: number;
   maxClockMHz: number;
   currentClockMHz: number;
-  memoryClockMHz?: number;
+  memoryClockMHz?: number | null;
   vbiosVersion?: string;
   pciBus?: string;
+  vramType?: string;
+  vramBitWidth?: number;
+  pcieWidth?: number | null;
+  pcieSpeed?: string | null;
+  eccCorrectable?: number | null;
+  eccUncorrectable?: number | null;
   isThrottling?: boolean;
 }
 
@@ -91,6 +99,8 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
           usage: 0,
           memory: gpu.memory || { total: 0, used: 0 },
           temperature: gpu.temperature ?? null,
+          temperatureHotspot: gpu.temperatureHotspot ?? null,
+          temperatureMem: gpu.temperatureMem ?? null,
           power: gpu.power ?? null,
           driverVersion: gpu.driverVersion || "Unknown",
           gfxVersion: gpu.gfxVersion,
@@ -98,10 +108,16 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
           computeUnits: gpu.computeUnits,
           maxClockMHz: gpu.maxClockMHz,
           currentClockMHz: gpu.currentClockMHz || 0,
-          memoryClockMHz: gpu.memoryClockMHz,
+          memoryClockMHz: gpu.memoryClockMHz ?? null,
           vbiosVersion: gpu.vbiosVersion,
           pciBus: gpu.pciBus,
-          isThrottling: gpu.temperature !== undefined && gpu.temperature > 83,
+          vramType: gpu.vramType,
+          vramBitWidth: gpu.vramBitWidth,
+          pcieWidth: gpu.pcieWidth ?? null,
+          pcieSpeed: gpu.pcieSpeed ?? null,
+          eccCorrectable: gpu.eccCorrectable ?? null,
+          eccUncorrectable: gpu.eccUncorrectable ?? null,
+          isThrottling: gpu.isThrottling ?? false,
         })),
         rocmDetected: true,
         rocmRuntimeVersion: rocData.runtimeVersion || "",

@@ -640,95 +640,78 @@ async function getGpuUsage(rocmSmiPath: string): Promise<
 /**
  * Get enhanced GPU metrics from amd-smi
  * This provides more comprehensive data than rocm-smi
+ * Uses JSON output for reliable parsing
  */
 async function getAmdSmiMetrics(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
   const metricsMap = new Map<number, Partial<ROCmGPUInfo>>();
 
   try {
-    // Get metric output
-    const { stdout } = await execAsync("amd-smi metric 2>/dev/null");
+    // Get metric output in JSON format
+    const { stdout } = await execAsync("amd-smi metric --json 2>/dev/null");
+    const data = JSON.parse(stdout);
 
-    // Parse GPU sections
-    const gpuSections = stdout.split(/^GPU:/m);
-
-    for (const section of gpuSections) {
-      if (!section.trim()) continue;
-
-      const gpuMatch = section.match(/(\d+)/);
-      if (!gpuMatch) continue;
-      const index = parseInt(gpuMatch[1], 10);
-
+    for (const gpuData of data.gpu_data || []) {
+      const index = gpuData.gpu;
       const metrics: Partial<ROCmGPUInfo> = { index };
 
       // Temperature - EDGE
-      const edgeMatch = section.match(/EDGE:\s*([\d.]+)\s*°?C?/i);
-      if (edgeMatch) {
-        metrics.temperature = Math.round(parseFloat(edgeMatch[1]));
+      if (gpuData.temperature?.edge?.value !== undefined && gpuData.temperature.edge.value !== "N/A") {
+        metrics.temperature = Math.round(parseFloat(gpuData.temperature.edge.value));
       }
 
       // Temperature - HOTSPOT
-      const hotspotMatch = section.match(/HOTSPOT:\s*([\d.]+)\s*°?C?/i);
-      if (hotspotMatch) {
-        metrics.temperatureHotspot = Math.round(parseFloat(hotspotMatch[1]));
+      if (gpuData.temperature?.hotspot !== undefined && gpuData.temperature.hotspot !== "N/A") {
+        metrics.temperatureHotspot = Math.round(parseFloat(gpuData.temperature.hotspot));
       }
 
       // Temperature - MEM
-      const memTempMatch = section.match(/MEM:\s*([\d.]+)\s*°?C?/i);
-      if (memTempMatch) {
-        metrics.temperatureMem = Math.round(parseFloat(memTempMatch[1]));
+      if (gpuData.temperature?.mem !== undefined && gpuData.temperature.mem !== "N/A") {
+        metrics.temperatureMem = Math.round(parseFloat(gpuData.temperature.mem));
       }
 
       // Power
-      const powerMatch = section.match(/SOCKET_POWER:\s*([\d.]+)\s*W?/i);
-      if (powerMatch) {
-        metrics.power = parseFloat(powerMatch[1]);
+      if (gpuData.power?.socket_power !== undefined && gpuData.power.socket_power !== "N/A") {
+        metrics.power = parseFloat(gpuData.power.socket_power);
       }
 
       // Clock - GFX
-      const clockMatch = section.match(/GFX:\s*([\d.]+)\s*MHz/i);
-      if (clockMatch) {
-        metrics.currentClockMHz = Math.round(parseFloat(clockMatch[1]));
+      if (gpuData.clock?.gfx_0?.clk !== undefined && gpuData.clock.gfx_0.clk !== "N/A") {
+        metrics.currentClockMHz = Math.round(parseFloat(gpuData.clock.gfx_0.clk));
       }
 
       // MEM USAGE
-      const vramTotalMatch = section.match(/TOTAL_VRAM:\s*(\d+)\s*MB/i);
-      const vramUsedMatch = section.match(/USED_VRAM:\s*(\d+)\s*MB/i);
-
-      if (vramTotalMatch) {
-        const totalMB = parseInt(vramTotalMatch[1], 10);
-        const usedMB = vramUsedMatch ? parseInt(vramUsedMatch[1], 10) : 0;
+      if (gpuData.mem_usage?.total_vram?.value !== undefined) {
+        const totalMB = parseInt(gpuData.mem_usage.total_vram.value, 10);
+        const usedMB = gpuData.mem_usage.used_vram?.value 
+          ? parseInt(gpuData.mem_usage.used_vram.value, 10) 
+          : 0;
         metrics.memory = {
-          total: Math.round((totalMB / 1024) * 100) / 100, // Convert to GB
+          total: Math.round((totalMB / 1024) * 100) / 100,
           used: Math.round((usedMB / 1024) * 100) / 100,
         };
       }
 
       // PCIe Width
-      const pcieWidthMatch = section.match(/WIDTH:\s*x(\d+)/i);
-      if (pcieWidthMatch) {
-        metrics.pcieWidth = parseInt(pcieWidthMatch[1], 10);
+      if (gpuData.pcie?.width !== undefined && gpuData.pcie.width !== "N/A") {
+        metrics.pcieWidth = parseInt(gpuData.pcie.width.replace("x", ""), 10);
       }
 
       // PCIe Speed
-      const pcieSpeedMatch = section.match(/SPEED:\s*(Gen\d+x\d+)/i);
-      if (pcieSpeedMatch) {
-        metrics.pcieSpeed = pcieSpeedMatch[1];
+      if (gpuData.pcie?.speed !== undefined && gpuData.pcie.speed !== "N/A") {
+        metrics.pcieSpeed = gpuData.pcie.speed;
       }
 
-      // ECC
-      const eccCorrMatch = section.match(/TOTAL_CORRECTABLE_COUNT:\s*(\d+)/i);
-      const eccUncorrMatch = section.match(/TOTAL_UNCORRECTABLE_COUNT:\s*(\d+)/i);
-      if (eccCorrMatch) {
-        metrics.eccCorrectable = parseInt(eccCorrMatch[1], 10);
+      // ECC - always capture even if 0
+      if (gpuData.ecc?.total_correctable_count !== undefined) {
+        metrics.eccCorrectable = parseInt(gpuData.ecc.total_correctable_count, 10);
       }
-      if (eccUncorrMatch) {
-        metrics.eccUncorrectable = parseInt(eccUncorrMatch[1], 10);
+      if (gpuData.ecc?.total_uncorrectable_count !== undefined) {
+        metrics.eccUncorrectable = parseInt(gpuData.ecc.total_uncorrectable_count, 10);
       }
 
       // Throttle status
-      const throttleMatch = section.match(/THROTTLE_STATUS:\s*(\w+)/i);
-      if (throttleMatch && throttleMatch[1].toLowerCase() !== "n/a") {
-        metrics.isThrottling = throttleMatch[1].toLowerCase() === "yes" || throttleMatch[1].toLowerCase() === "true";
+      if (gpuData.power?.throttle_status !== undefined && gpuData.power.throttle_status !== "N/A") {
+        metrics.isThrottling = gpuData.power.throttle_status === "yes" || gpuData.power.throttle_status === "true";
       }
 
       metricsMap.set(index, metrics);
