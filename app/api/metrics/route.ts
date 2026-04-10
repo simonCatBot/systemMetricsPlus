@@ -193,7 +193,7 @@ export async function GET(): Promise<NextResponse> {
       ]);
 
     // Top processes
-    const topProcesses = await getTopProcesses(3);
+    const topProcesses = await getTopProcesses(5);
 
     // CPU metrics
     const cpuMetrics = {
