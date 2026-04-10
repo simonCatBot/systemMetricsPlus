@@ -160,7 +160,7 @@ function CpuColumn({
     );
   }
 
-  const { name, usage, usageUser, usageSystem, physicalCores, logicalCores, temperature, currentSpeedMHz, maxSpeedMHz, minSpeedMHz, loadAvg, coreLoads, coreSpeeds, cache, flags, virtualization, governor } = data;
+  const { name, usage, usageUser, usageSystem, physicalCores, logicalCores, temperature, currentSpeedMHz, maxSpeedMHz, minSpeedMHz, loadAvg, coreLoads, coreSpeeds, cache, flags, virtualization, governor, topProcesses } = data;
   const [load1, load5, load15] = loadAvg;
 
   return (
@@ -348,6 +348,28 @@ function CpuColumn({
           <span className="px-1.5 py-0.5 text-[9px] bg-surface-2 text-muted-foreground rounded capitalize">{governor}</span>
         </div>
       </div>
+
+      {/* Top Processes */}
+      {data.topProcesses && data.topProcesses.length > 0 && (
+        <div className="mb-3">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">Top Processes</span>
+          <div className="mt-1 space-y-1">
+            {data.topProcesses.map((proc, i) => (
+              <div key={proc.pid} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-muted-foreground w-4">{i + 1}.</span>
+                  <span className="truncate text-foreground">{proc.name}</span>
+                  <span className="text-muted-foreground text-[10px]">({proc.pid})</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <span className="text-foreground">{proc.cpu.toFixed(1)}% CPU</span>
+                  <span className="text-foreground">{proc.mem.toFixed(1)}% MEM</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Clock Speed Range */}
       {(maxSpeedMHz > 0 || minSpeedMHz > 0) && (

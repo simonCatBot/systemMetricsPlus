@@ -22,6 +22,13 @@ export interface CpuMetrics {
   flags: string;
   virtualization: boolean;
   governor: string;
+  topProcesses?: {
+    pid: number;
+    name: string;
+    cpu: number;
+    mem: number;
+    user: string;
+  }[];
 }
 
 export interface MemoryMetrics {

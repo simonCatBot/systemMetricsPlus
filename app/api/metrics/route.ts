@@ -57,6 +57,21 @@ async function getOsInfo() {
   return si.osInfo();
 }
 
+async function getTopProcesses(limit = 3) {
+  const procs = await si.processes();
+  return procs.list
+    .filter((p: { cpu: number; mem: number; name: string }) => p.cpu > 0 || p.mem > 0)
+    .sort((a: { cpu: number }, b: { cpu: number }) => b.cpu - a.cpu)
+    .slice(0, limit)
+    .map((p: { pid: number; name: string; cpu: number; mem: number; user: string }) => ({
+      pid: p.pid,
+      name: p.name,
+      cpu: Math.round(p.cpu * 100) / 100,
+      mem: Math.round(p.mem * 100) / 100,
+      user: p.user,
+    }));
+}
+
 interface GpuOutput {
   index: number;
   name: string;
@@ -177,6 +192,9 @@ export async function GET(): Promise<NextResponse> {
         getGpuMetrics(),
       ]);
 
+    // Top processes
+    const topProcesses = await getTopProcesses(3);
+
     // CPU metrics
     const cpuMetrics = {
       name: cpu.brand || "Unknown CPU",
@@ -204,6 +222,7 @@ export async function GET(): Promise<NextResponse> {
       flags: cpu.flags || "",
       virtualization: cpu.virtualization || false,
       governor: cpu.governor || "unknown",
+      topProcesses,
     };
 
     // Memory metrics
