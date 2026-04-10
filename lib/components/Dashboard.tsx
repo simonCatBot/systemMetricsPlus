@@ -66,13 +66,13 @@ function getProcessorLabel(name: string) {
 
 function getVramStatus(used: number | null, total: number | null) {
   if (total === null || total === undefined || total === 0) {
-    return { percent: 0, status: "OK", color: "text-foreground" };
+    return { percent: 0, status: "OK", color: "text-foreground", bgColor: "bg-primary" };
   }
   const percent = Math.round((used || 0) / total * 100);
-  if (percent > 95) return { percent, status: "CRITICAL", color: "text-red-500" };
-  if (percent > 85) return { percent, status: "WARNING", color: "text-orange-500" };
-  if (percent > 70) return { percent, status: "ELEVATED", color: "text-yellow-500" };
-  return { percent, status: "OK", color: "text-green-500" };
+  if (percent > 95) return { percent, status: "CRITICAL", color: "text-red-500", bgColor: "bg-red-500" };
+  if (percent > 85) return { percent, status: "WARNING", color: "text-orange-500", bgColor: "bg-orange-500" };
+  if (percent > 70) return { percent, status: "ELEVATED", color: "text-yellow-500", bgColor: "bg-yellow-500" };
+  return { percent, status: "OK", color: "text-green-500", bgColor: "bg-green-500" };
 }
 
 function getTrainingStatus(gpu: SystemMetrics["gpu"][0]) {
@@ -284,12 +284,16 @@ function GpuColumn({
   rocmRuntimeVersion,
   isActive,
   onClick,
+  showGpuHardware,
+  setShowGpuHardware,
 }: {
   gpus: SystemMetrics["gpu"];
   rocmDetected: boolean;
   rocmRuntimeVersion: string;
   isActive: boolean;
   onClick: () => void;
+  showGpuHardware: boolean;
+  setShowGpuHardware: (v: boolean) => void;
 }) {
   const primaryGpu = gpus && gpus.length > 0 ? gpus[0] : null;
 
@@ -309,44 +313,66 @@ function GpuColumn({
     <Column isActive={isActive} onClick={onClick}>
       <ColumnHeader title="Graphics Processor" icon={Video} isActive={isActive} onClick={onClick} />
 
-      {/* GPU Info */}
-      <div className="mb-3 flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-foreground truncate">{primaryGpu.marketingName || primaryGpu.name}</p>
-          <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
-            <span>{primaryGpu.vendor || "AMD"}</span>
-            {primaryGpu.gfxVersion && primaryGpu.gfxVersion !== "N/A" && (
-              <>
-                <span className="w-1 h-1 bg-muted-foreground rounded-full" />
-                <span className="font-mono">{primaryGpu.gfxVersion}</span>
-              </>
-            )}
+      {/* GPU Info - Prominent style */}
+      <div className="mb-3 p-3 bg-surface-1 border border-border rounded-lg">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="p-2 bg-primary/20 rounded-md">
+              <Video className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Graphics Processor</p>
+              <p className="text-sm font-semibold text-foreground truncate">{primaryGpu.marketingName || primaryGpu.name}</p>
+            </div>
           </div>
+          {trainingStatus && (
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${trainingStatus.bg} border border-border/50`}>
+              <trainingStatus.icon className={`w-3.5 h-3.5 ${trainingStatus.color}`} />
+              <span className={`text-xs font-medium ${trainingStatus.color}`}>{trainingStatus.label}</span>
+            </div>
+          )}
         </div>
-        {trainingStatus && (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: trainingStatus.bg }}>
-            <trainingStatus.icon className={`w-3 h-3 ${trainingStatus.color}`} />
-            <span className={`text-xs font-medium ${trainingStatus.color}`}>{trainingStatus.label}</span>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <span>{primaryGpu.vendor || "AMD"}</span>
+          {primaryGpu.gfxVersion && primaryGpu.gfxVersion !== "N/A" && (
+            <>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+              <span className="font-mono">{primaryGpu.gfxVersion}</span>
+            </>
+          )}
+          {primaryGpu.computeUnits !== undefined && primaryGpu.computeUnits > 0 && (
+            <>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+              <span>{primaryGpu.computeUnits} CUs</span>
+            </>
+          )}
+          {primaryGpu.maxClockMHz !== undefined && primaryGpu.maxClockMHz > 0 && (
+            <>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+              <span>{formatMHz(primaryGpu.maxClockMHz)}</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* GPU Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <Gauge className="w-3 h-3 text-primary" />
-            <span className="text-xs text-muted-foreground">GPU Usage</span>
+            <Gauge className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">GPU Usage</span>
           </div>
-          <span className={`text-sm font-bold ${(primaryGpu.usage ?? 0) > 80 ? "text-red-500" : "text-foreground"}`}>
-            {primaryGpu.usage ?? 0}%
-          </span>
-        </div>
-        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${(primaryGpu.usage ?? 0) > 80 ? "bg-red-500" : "bg-primary"}`}
-            style={{ width: `${Math.min(primaryGpu.usage ?? 0, 100)}%` }}
-          />
+          <div className="flex items-center gap-3">
+            <div className="w-32 h-2 bg-surface-2 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${(primaryGpu.usage ?? 0) > 80 ? "bg-red-500" : "bg-primary"}`}
+                style={{ width: `${Math.min(primaryGpu.usage ?? 0, 100)}%` }}
+              />
+            </div>
+            <span className={`text-sm font-bold ${(primaryGpu.usage ?? 0) > 80 ? "text-red-500" : "text-foreground"}`}>
+              {primaryGpu.usage ?? 0}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -354,26 +380,34 @@ function GpuColumn({
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">VRAM</span>
-            {vramStatus.status !== "OK" && <AlertTriangle className="w-3 h-3 text-red-500 animate-pulse" />}
+            <MemoryStick className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">VRAM</span>
+            {vramStatus.status === "CRITICAL" && (
+              <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />
+            )}
           </div>
-          <span className={`text-sm font-bold ${vramStatus.color}`}>{vramStatus.percent}%</span>
+          <div className="flex items-center gap-3">
+            <div className="w-32 h-2 bg-surface-2 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${vramStatus.bgColor}`}
+                style={{ width: `${Math.min(vramStatus.percent, 100)}%` }}
+              />
+            </div>
+            <span className={`text-sm font-bold ${vramStatus.color}`}>
+              {vramStatus.percent}%
+            </span>
+          </div>
         </div>
-        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              vramStatus.status !== "OK" ? "bg-red-500" : "bg-primary"
-            }`}
-            style={{ width: `${Math.min(vramStatus.percent, 100)}%` }}
-          />
-        </div>
-        <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+        <div className="flex justify-between mt-1 text-xs text-muted-foreground px-1">
           <span>Used: {formatGB(primaryGpu.memory?.used || 0)}</span>
           <span>Total: {formatGB(primaryGpu.memory?.total || 0)}</span>
+          {vramStatus.status !== "OK" && (
+            <span className={vramStatus.color}>{vramStatus.status}</span>
+          )}
         </div>
       </div>
 
-      {/* GPU Stats */}
+      {/* GPU Stats Row */}
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
@@ -381,7 +415,7 @@ function GpuColumn({
             <span>{formatTemp(primaryGpu.temperature)}</span>
           </div>
         )}
-        {primaryGpu.currentClockMHz > 0 && (
+        {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0 && (
           <div className="flex items-center gap-1">
             <Zap className="w-3 h-3" />
             <span>{formatMHz(primaryGpu.currentClockMHz)}</span>
@@ -406,6 +440,40 @@ function GpuColumn({
             className="h-8 w-auto object-contain"
           />
           <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
+        </div>
+      )}
+
+      {/* GPU Hardware Details - collapsible */}
+      {(primaryGpu.deviceId || primaryGpu.driverVersion) && (
+        <div className="pt-2 mt-3 border-t border-border/30">
+          <button
+            type="button"
+            onClick={() => setShowGpuHardware(!showGpuHardware)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Hardware Details
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              {showGpuHardware ? "▲" : "▼"}
+            </span>
+          </button>
+          {showGpuHardware && (
+            <div className="space-y-1 mt-2">
+              {primaryGpu.deviceId && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Device ID:</span>
+                  <span className="font-mono text-foreground">{primaryGpu.deviceId}</span>
+                </div>
+              )}
+              {primaryGpu.driverVersion && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Driver:</span>
+                  <span className="font-mono text-foreground">{primaryGpu.driverVersion}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </Column>
@@ -611,13 +679,13 @@ function DashboardContent() {
   const [visibleTabs, setVisibleTabs] = useState<Set<TabId>>(new Set(["cpu", "gpu", "memory", "network", "disk"]));
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
   const [showPerCore, setShowPerCore] = useState(false);
+  const [showGpuHardware, setShowGpuHardware] = useState(false);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        // Switch to first visible if hiding active
         if (activeTab === id) {
           const remaining = Array.from(next);
           if (remaining.length > 0) setActiveTab(remaining[0]);
@@ -654,7 +722,6 @@ function DashboardContent() {
     return order.filter((id) => visibleTabs.has(id));
   };
 
-  // Get ROCm info from GPU data if available
   const rocmDetected = metrics?.gpu.some((g) => g.gfxVersion && g.gfxVersion !== "N/A") ?? false;
   const rocmRuntimeVersion = metrics?.gpu.find((g) => g.driverVersion)?.driverVersion ?? "";
 
@@ -740,6 +807,8 @@ function DashboardContent() {
                       rocmRuntimeVersion={rocmRuntimeVersion}
                       isActive={isActive}
                       onClick={() => setActiveTab(tabId)}
+                      showGpuHardware={showGpuHardware}
+                      setShowGpuHardware={setShowGpuHardware}
                     />
                   );
                 case "memory":
