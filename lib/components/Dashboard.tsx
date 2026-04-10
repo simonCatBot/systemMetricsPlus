@@ -822,7 +822,6 @@ function DashboardContent() {
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
           </div>
-        </div>
 
           {/* Tab Bar - all tabs, click to toggle visibility */}
           <div className="flex gap-1 mt-3">
