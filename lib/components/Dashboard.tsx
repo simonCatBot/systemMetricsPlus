@@ -21,16 +21,17 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import Image from "next/image";
 import type { TabId } from "./TabContext";
 
 const UPDATE_INTERVAL = 2000;
 
-const allTabs: { id: TabId; label: string }[] = [
-  { id: "cpu", label: "CPU" },
-  { id: "gpu", label: "GPU" },
-  { id: "memory", label: "Memory" },
-  { id: "network", label: "Network" },
-  { id: "disk", label: "Disk" },
+const allTabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "cpu", label: "CPU", icon: Cpu },
+  { id: "gpu", label: "GPU", icon: Video },
+  { id: "memory", label: "Memory", icon: MemoryStick },
+  { id: "network", label: "Network", icon: Wifi },
+  { id: "disk", label: "Disk", icon: HardDrive },
 ];
 
 function formatGB(gb: number) {
@@ -84,51 +85,76 @@ function getTrainingStatus(gpu: SystemMetrics["gpu"][0]) {
   if (highUtil && highVram) return { label: "Training", color: "text-green-500", icon: BrainCircuit, bg: "bg-green-500/20" };
   if (highUtil) return { label: "Computing", color: "text-blue-500", icon: Activity, bg: "bg-blue-500/20" };
   if (gpu.usage > 10) return { label: "Active", color: "text-yellow-500", icon: Zap, bg: "bg-yellow-500/20" };
-  return { label: "Idle", color: "text-[var(--muted-foreground)]", icon: Clock, bg: "" };
-}
-
-function ProgressBar({ value, alert = false }: { value: number; alert?: boolean }) {
-  const bgColor = alert ? "bg-red-500" : "var(--primary)";
-  return (
-    <div className="h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-300"
-        style={{ width: `${Math.min(value, 100)}%`, background: bgColor }}
-      />
-    </div>
-  );
+  return { label: "Idle", color: "text-muted-foreground", icon: Clock, bg: "bg-surface-2" };
 }
 
 interface ColumnProps {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
   className?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-function Column({ title, icon: Icon, children, className = "" }: ColumnProps) {
+function Column({ children, className = "", isActive = false, onClick }: ColumnProps) {
   return (
     <div
-      className={`ui-panel p-4 h-full overflow-y-auto ${className}`}
-      style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
+      onClick={onClick}
+      className={`ui-panel p-4 h-full overflow-y-auto transition-all ${
+        isActive ? "ring-2 ring-primary/50" : ""
+      } ${className}`}
+      style={{
+        background: "var(--panel)",
+        borderColor: "var(--border)",
+        minWidth: "280px",
+        flexShrink: 0,
+      }}
     >
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[var(--border)]">
-        <Icon className="w-4 h-4 text-[var(--primary)]" />
-        <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-          {title}
-        </h3>
-      </div>
       {children}
     </div>
   );
 }
 
+function ColumnHeader({
+  title,
+  icon: Icon,
+  isActive,
+  onClick,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 w-full text-left mb-3 pb-2 border-b transition-colors ${
+        isActive ? "border-primary/50" : "border-border/30"
+      }`}
+    >
+      <Icon className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+      <h3 className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+        {title}
+      </h3>
+    </button>
+  );
+}
+
 /* CPU Column */
-function CpuColumn({ data }: { data: SystemMetrics["cpu"] | null }) {
+function CpuColumn({
+  data,
+  isActive,
+  onClick,
+}: {
+  data: SystemMetrics["cpu"] | null;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   if (!data) {
     return (
-      <Column title="CPU" icon={Cpu}>
-        <div className="flex items-center justify-center h-32" style={{ color: "var(--muted-foreground)" }}>
+      <Column isActive={isActive} onClick={onClick}>
+        <ColumnHeader title="Processor" icon={Cpu} isActive={isActive} onClick={onClick} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground">
           Loading...
         </div>
       </Column>
@@ -139,34 +165,40 @@ function CpuColumn({ data }: { data: SystemMetrics["cpu"] | null }) {
   const [load1, load5, load15] = loadAvg;
 
   return (
-    <Column title="Processor" icon={Cpu}>
+    <Column isActive={isActive} onClick={onClick}>
+      <ColumnHeader title="Processor" icon={Cpu} isActive={isActive} onClick={onClick} />
+
       {/* CPU Info */}
       <div className="mb-3">
-        <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
-          {name}
-        </p>
-        <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <p className="text-sm font-medium text-foreground truncate">{name}</p>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
           <span>{getProcessorLabel(name)}</span>
-          <span className="w-1 h-1 rounded-full" style={{ background: "var(--muted-foreground)" }} />
-          <span>{physicalCores} cores</span>
-          <span className="w-1 h-1 rounded-full" style={{ background: "var(--muted-foreground)" }} />
-          <span>{logicalCores} threads</span>
+          <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+          <span>{physicalCores} cores, {logicalCores} threads</span>
         </div>
       </div>
 
       {/* CPU Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Usage</span>
-          <span className="text-sm font-bold" style={{ color: usage > 80 ? "#ef4444" : "var(--foreground)" }}>
+          <div className="flex items-center gap-1.5">
+            <Gauge className="w-3 h-3 text-primary" />
+            <span className="text-xs text-muted-foreground">Usage</span>
+          </div>
+          <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
             {Math.round(usage)}%
           </span>
         </div>
-        <ProgressBar value={usage} alert={usage > 80} />
+        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${usage > 80 ? "bg-red-500" : "bg-primary"}`}
+            style={{ width: `${Math.min(usage, 100)}%` }}
+          />
+        </div>
       </div>
 
       {/* CPU Stats */}
-      <div className="flex flex-wrap gap-3 mb-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
+      <div className="flex flex-wrap gap-4 mb-3 text-xs text-muted-foreground">
         {temperature !== null && temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className="w-3 h-3" />
@@ -187,29 +219,29 @@ function CpuColumn({ data }: { data: SystemMetrics["cpu"] | null }) {
 
       {/* Load Averages */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        {[
-          { label: "1m", value: load1 },
-          { label: "5m", value: load5 },
-          { label: "15m", value: load15 },
-        ].map(({ label, value }) => (
-          <div key={label} className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
-            <p className="text-lg font-bold" style={{ color: value > logicalCores ? "#ef4444" : "var(--foreground)" }}>
-              {formatLoad(value)}
-            </p>
-            <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-          </div>
-        ))}
+        {[{ label: "1m", value: load1 }, { label: "5m", value: load5 }, { label: "15m", value: load15 }].map(
+          ({ label, value }) => (
+            <div key={label} className="text-center p-2 bg-surface-2 rounded">
+              <p
+                className={`text-lg font-bold ${value > logicalCores ? "text-red-500" : "text-foreground"}`}
+              >
+                {formatLoad(value)}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
+            </div>
+          )
+        )}
       </div>
 
       {/* Per-Core Usage */}
       {coreLoads.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase mb-2" style={{ color: "var(--muted-foreground)" }}>Per-Core</p>
+          <p className="text-[10px] text-muted-foreground uppercase mb-2">Per-Core</p>
           <div className="grid grid-cols-4 gap-1">
             {coreLoads.slice(0, 8).map((load, i) => (
-              <div key={i} className="text-center p-1 rounded" style={{ background: "var(--surface-2)" }}>
-                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>C{i}</p>
-                <p className="text-xs font-bold" style={{ color: load > 80 ? "#ef4444" : "var(--foreground)" }}>
+              <div key={i} className="text-center p-1 bg-surface-2 rounded">
+                <p className="text-[10px] text-muted-foreground">C{i}</p>
+                <p className={`text-xs font-bold ${load > 80 ? "text-red-500" : "text-foreground"}`}>
                   {load}%
                 </p>
               </div>
@@ -222,15 +254,26 @@ function CpuColumn({ data }: { data: SystemMetrics["cpu"] | null }) {
 }
 
 /* GPU Column */
-function GpuColumn({ gpus }: { gpus: SystemMetrics["gpu"] }) {
+function GpuColumn({
+  gpus,
+  rocmDetected,
+  rocmRuntimeVersion,
+  isActive,
+  onClick,
+}: {
+  gpus: SystemMetrics["gpu"];
+  rocmDetected: boolean;
+  rocmRuntimeVersion: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   const primaryGpu = gpus && gpus.length > 0 ? gpus[0] : null;
 
   if (!primaryGpu) {
     return (
-      <Column title="GPU" icon={Video}>
-        <div className="flex items-center justify-center h-32" style={{ color: "var(--muted-foreground)" }}>
-          No GPU detected
-        </div>
+      <Column isActive={isActive} onClick={onClick}>
+        <ColumnHeader title="Graphics Processor" icon={Video} isActive={isActive} onClick={onClick} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground">No GPU detected</div>
       </Column>
     );
   }
@@ -239,18 +282,18 @@ function GpuColumn({ gpus }: { gpus: SystemMetrics["gpu"] }) {
   const trainingStatus = getTrainingStatus(primaryGpu);
 
   return (
-    <Column title="Graphics Processor" icon={Video}>
+    <Column isActive={isActive} onClick={onClick}>
+      <ColumnHeader title="Graphics Processor" icon={Video} isActive={isActive} onClick={onClick} />
+
       {/* GPU Info */}
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
-            {primaryGpu.marketingName || primaryGpu.name}
-          </p>
-          <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+          <p className="text-sm font-medium text-foreground truncate">{primaryGpu.marketingName || primaryGpu.name}</p>
+          <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
             <span>{primaryGpu.vendor || "AMD"}</span>
             {primaryGpu.gfxVersion && primaryGpu.gfxVersion !== "N/A" && (
               <>
-                <span className="w-1 h-1 rounded-full" style={{ background: "var(--muted-foreground)" }} />
+                <span className="w-1 h-1 bg-muted-foreground rounded-full" />
                 <span className="font-mono">{primaryGpu.gfxVersion}</span>
               </>
             )}
@@ -267,36 +310,47 @@ function GpuColumn({ gpus }: { gpus: SystemMetrics["gpu"] }) {
       {/* GPU Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>GPU Usage</span>
-          <span className="text-sm font-bold" style={{ color: primaryGpu.usage > 80 ? "#ef4444" : "var(--foreground)" }}>
+          <div className="flex items-center gap-1.5">
+            <Gauge className="w-3 h-3 text-primary" />
+            <span className="text-xs text-muted-foreground">GPU Usage</span>
+          </div>
+          <span className={`text-sm font-bold ${(primaryGpu.usage ?? 0) > 80 ? "text-red-500" : "text-foreground"}`}>
             {primaryGpu.usage ?? 0}%
           </span>
         </div>
-        <ProgressBar value={primaryGpu.usage ?? 0} alert={(primaryGpu.usage ?? 0) > 80} />
+        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${(primaryGpu.usage ?? 0) > 80 ? "bg-red-500" : "bg-primary"}`}
+            style={{ width: `${Math.min(primaryGpu.usage ?? 0, 100)}%` }}
+          />
+        </div>
       </div>
 
       {/* VRAM */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-1">
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>VRAM</span>
-            {vramStatus.status !== "OK" && (
-              <AlertTriangle className="w-3 h-3 text-red-500 animate-pulse" />
-            )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">VRAM</span>
+            {vramStatus.status !== "OK" && <AlertTriangle className="w-3 h-3 text-red-500 animate-pulse" />}
           </div>
-          <span className="text-sm font-bold" style={{ color: vramStatus.color }}>
-            {vramStatus.percent}%
-          </span>
+          <span className={`text-sm font-bold ${vramStatus.color}`}>{vramStatus.percent}%</span>
         </div>
-        <ProgressBar value={vramStatus.percent} alert={vramStatus.status !== "OK"} />
-        <div className="flex justify-between mt-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
-          <span>{formatGB(primaryGpu.memory?.used || 0)}</span>
-          <span>{formatGB(primaryGpu.memory?.total || 0)}</span>
+        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${
+              vramStatus.status !== "OK" ? "bg-red-500" : "bg-primary"
+            }`}
+            style={{ width: `${Math.min(vramStatus.percent, 100)}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+          <span>Used: {formatGB(primaryGpu.memory?.used || 0)}</span>
+          <span>Total: {formatGB(primaryGpu.memory?.total || 0)}</span>
         </div>
       </div>
 
       {/* GPU Stats */}
-      <div className="flex flex-wrap gap-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className="w-3 h-3" />
@@ -316,18 +370,39 @@ function GpuColumn({ gpus }: { gpus: SystemMetrics["gpu"] }) {
           </div>
         )}
       </div>
+
+      {/* ROCm Powered By */}
+      {rocmDetected && (
+        <div className="flex items-center gap-2 pt-2 mt-3 border-t border-border/30">
+          <Image
+            src="https://avatars.githubusercontent.com/u/16900649?s=280&v=4"
+            alt="AMD ROCm"
+            width={80}
+            height={32}
+            className="h-8 w-auto object-contain"
+          />
+          <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
+        </div>
+      )}
     </Column>
   );
 }
 
 /* Memory Column */
-function MemoryColumn({ data }: { data: SystemMetrics["memory"] | null }) {
+function MemoryColumn({
+  data,
+  isActive,
+  onClick,
+}: {
+  data: SystemMetrics["memory"] | null;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   if (!data) {
     return (
-      <Column title="Memory" icon={MemoryStick}>
-        <div className="flex items-center justify-center h-32" style={{ color: "var(--muted-foreground)" }}>
-          Loading...
-        </div>
+      <Column isActive={isActive} onClick={onClick}>
+        <ColumnHeader title="System Memory" icon={MemoryStick} isActive={isActive} onClick={onClick} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground">Loading...</div>
       </Column>
     );
   }
@@ -335,51 +410,65 @@ function MemoryColumn({ data }: { data: SystemMetrics["memory"] | null }) {
   const { total, used, free, usage, swapUsed, swapTotal } = data;
 
   return (
-    <Column title="System Memory" icon={MemoryStick}>
+    <Column isActive={isActive} onClick={onClick}>
+      <ColumnHeader title="System Memory" icon={MemoryStick} isActive={isActive} onClick={onClick} />
+
       {/* Memory Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Usage</span>
-          <span className="text-sm font-bold" style={{ color: usage > 80 ? "#ef4444" : "var(--foreground)" }}>
+          <span className="text-xs text-muted-foreground">Usage</span>
+          <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
             {Math.round(usage)}%
           </span>
         </div>
-        <ProgressBar value={usage} alert={usage > 80} />
+        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${usage > 80 ? "bg-red-500" : "bg-primary"}`}
+            style={{ width: `${Math.min(usage, 100)}%` }}
+          />
+        </div>
       </div>
 
       {/* Memory Stats */}
       <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
+        <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-green-400">{used.toFixed(1)}</p>
-          <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Used</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Used</p>
         </div>
-        <div className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
-          <p className="text-lg font-bold">{free.toFixed(1)}</p>
-          <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Free</p>
+        <div className="text-center p-2 bg-surface-2 rounded">
+          <p className="text-lg font-bold text-foreground">{free.toFixed(1)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Free</p>
         </div>
-        <div className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
+        <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-cyan-400">{swapUsed.toFixed(1)}</p>
-          <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Swap</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Swap</p>
         </div>
       </div>
 
       {/* Total */}
-      <div className="text-center p-3 rounded" style={{ background: "var(--surface-2)" }}>
-        <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>{total.toFixed(1)} GB</p>
-        <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Total</p>
+      <div className="text-center p-3 bg-surface-2 rounded">
+        <p className="text-2xl font-bold text-foreground">{total.toFixed(1)} GB</p>
+        <p className="text-[10px] text-muted-foreground uppercase">Total</p>
       </div>
     </Column>
   );
 }
 
 /* Network Column */
-function NetworkColumn({ data }: { data: SystemMetrics["network"] | null }) {
+function NetworkColumn({
+  data,
+  isActive,
+  onClick,
+}: {
+  data: SystemMetrics["network"] | null;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   if (!data || !data.interfaces || data.interfaces.length === 0) {
     return (
-      <Column title="Network" icon={Wifi}>
-        <div className="flex items-center justify-center h-32" style={{ color: "var(--muted-foreground)" }}>
-          No network detected
-        </div>
+      <Column isActive={isActive} onClick={onClick}>
+        <ColumnHeader title="Network" icon={Wifi} isActive={isActive} onClick={onClick} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground">No network detected</div>
       </Column>
     );
   }
@@ -387,32 +476,28 @@ function NetworkColumn({ data }: { data: SystemMetrics["network"] | null }) {
   const primaryInterface = data.interfaces[0];
 
   return (
-    <Column title="Network" icon={Wifi}>
+    <Column isActive={isActive} onClick={onClick}>
+      <ColumnHeader title="Network" icon={Wifi} isActive={isActive} onClick={onClick} />
+
       {/* Interface Info */}
       <div className="mb-3">
-        <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-          {primaryInterface.name}
-        </p>
+        <p className="text-sm font-medium text-foreground">{primaryInterface.name}</p>
       </div>
 
       {/* Speed */}
       <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
-          <p className="text-lg font-bold text-green-400">
-            {formatSpeed(primaryInterface.rxSec)}
-          </p>
-          <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Download</p>
+        <div className="text-center p-2 bg-surface-2 rounded">
+          <p className="text-lg font-bold text-green-400">{formatSpeed(primaryInterface.rxSec)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Download</p>
         </div>
-        <div className="text-center p-2 rounded" style={{ background: "var(--surface-2)" }}>
-          <p className="text-lg font-bold text-blue-400">
-            {formatSpeed(primaryInterface.txSec)}
-          </p>
-          <p className="text-[10px] uppercase" style={{ color: "var(--muted-foreground)" }}>Upload</p>
+        <div className="text-center p-2 bg-surface-2 rounded">
+          <p className="text-lg font-bold text-blue-400">{formatSpeed(primaryInterface.txSec)}</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Upload</p>
         </div>
       </div>
 
       {/* Total Traffic */}
-      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+      <div className="text-xs text-muted-foreground">
         <div className="flex justify-between mb-1">
           <span>↓ Total</span>
           <span>{formatSpeed(primaryInterface.rxBytes)}</span>
@@ -427,13 +512,20 @@ function NetworkColumn({ data }: { data: SystemMetrics["network"] | null }) {
 }
 
 /* Disk Column */
-function DiskColumn({ data }: { data: SystemMetrics["disk"] | null }) {
+function DiskColumn({
+  data,
+  isActive,
+  onClick,
+}: {
+  data: SystemMetrics["disk"] | null;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   if (!data || !data.disks || data.disks.length === 0) {
     return (
-      <Column title="Disk" icon={HardDrive}>
-        <div className="flex items-center justify-center h-32" style={{ color: "var(--muted-foreground)" }}>
-          Loading...
-        </div>
+      <Column isActive={isActive} onClick={onClick}>
+        <ColumnHeader title="Storage" icon={HardDrive} isActive={isActive} onClick={onClick} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground">Loading...</div>
       </Column>
     );
   }
@@ -442,17 +534,24 @@ function DiskColumn({ data }: { data: SystemMetrics["disk"] | null }) {
   const totalUsage = total.total > 0 ? Math.round((total.used / total.total) * 100) : 0;
 
   return (
-    <Column title="Storage" icon={HardDrive}>
+    <Column isActive={isActive} onClick={onClick}>
+      <ColumnHeader title="Storage" icon={HardDrive} isActive={isActive} onClick={onClick} />
+
       {/* Total Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Total Usage</span>
-          <span className="text-sm font-bold" style={{ color: totalUsage > 80 ? "#ef4444" : "var(--foreground)" }}>
+          <span className="text-xs text-muted-foreground">Total Usage</span>
+          <span className={`text-sm font-bold ${totalUsage > 80 ? "text-red-500" : "text-foreground"}`}>
             {totalUsage}%
           </span>
         </div>
-        <ProgressBar value={totalUsage} alert={totalUsage > 80} />
-        <div className="flex justify-between mt-1 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${totalUsage > 80 ? "bg-red-500" : "bg-primary"}`}
+            style={{ width: `${Math.min(totalUsage, 100)}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
           <span>{formatGB(total.used)} used</span>
           <span>{formatGB(total.total)}</span>
         </div>
@@ -461,16 +560,17 @@ function DiskColumn({ data }: { data: SystemMetrics["disk"] | null }) {
       {/* Individual Disks */}
       <div className="space-y-2">
         {disks.map((disk) => (
-          <div key={disk.name} className="p-2 rounded" style={{ background: "var(--surface-2)" }}>
+          <div key={disk.name} className="p-2 bg-surface-2 rounded">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs truncate" style={{ color: "var(--foreground)" }}>
-                {disk.name.split("/").pop()}
-              </span>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                {disk.usage}%
-              </span>
+              <span className="text-xs text-foreground truncate">{disk.name.split("/").pop()}</span>
+              <span className="text-xs text-muted-foreground">{disk.usage}%</span>
             </div>
-            <ProgressBar value={disk.usage} alert={disk.usage > 80} />
+            <div className="h-1.5 bg-background rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${disk.usage > 80 ? "bg-red-500" : "bg-primary"}`}
+                style={{ width: `${Math.min(disk.usage, 100)}%` }}
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -485,6 +585,7 @@ function DashboardContent() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [visibleTabs, setVisibleTabs] = useState<Set<TabId>>(new Set(["cpu", "gpu", "memory", "network", "disk"]));
+  const [activeTab, setActiveTab] = useState<TabId>("cpu");
   const [showSettings, setShowSettings] = useState(false);
 
   const toggleTab = (id: TabId) => {
@@ -492,6 +593,11 @@ function DashboardContent() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
+        // Switch to first visible if hiding active
+        if (activeTab === id) {
+          const remaining = Array.from(next);
+          if (remaining.length > 0) setActiveTab(remaining[0]);
+        }
       } else {
         next.add(id);
       }
@@ -524,118 +630,143 @@ function DashboardContent() {
     return order.filter((id) => visibleTabs.has(id));
   };
 
+  // Get ROCm info from GPU data if available
+  const rocmDetected = metrics?.gpu.some((g) => g.gfxVersion && g.gfxVersion !== "N/A") ?? false;
+  const rocmRuntimeVersion = metrics?.gpu.find((g) => g.driverVersion)?.driverVersion ?? "";
+
   return (
-    <ThemeProvider>
+    <div className="min-h-screen overflow-hidden" style={{ background: "var(--background)" }}>
+      {/* Header */}
       <div
-        className="min-h-screen overflow-hidden"
-        style={{ background: "var(--background)" }}
+        className="sticky top-0 z-40 border-b backdrop-blur-sm"
+        style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
       >
-        {/* Header */}
-        <div
-          className="sticky top-0 z-40 border-b backdrop-blur-sm"
-          style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
-        >
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Server className="w-4 h-4 text-[var(--primary)]" />
-                  <h1 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
-                    System Metrics
-                  </h1>
-                </div>
-                <span
-                  className="px-2 py-0.5 text-[10px] rounded-full"
-                  style={{
-                    background: "rgba(34, 197, 94, 0.2)",
-                    color: "#22c55e",
-                    border: "1px solid rgba(34, 197, 94, 0.5)",
-                  }}
-                >
-                  Local
-                </span>
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Server className="w-4 h-4 text-primary" />
+                <h1 className="text-lg font-semibold text-foreground">System Metrics</h1>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
-                  <Clock className="w-3 h-3" />
-                  {lastUpdate?.toLocaleTimeString() || "--:--:--"}
-                </span>
-                <button onClick={() => setShowSettings(!showSettings)} className="theme-toggle" title="Toggle columns">
-                  <Settings className="w-4 h-4" />
+              <span
+                className="px-2 py-0.5 text-[10px] rounded-full"
+                style={{
+                  background: "rgba(34, 197, 94, 0.2)",
+                  color: "#22c55e",
+                  border: "1px solid rgba(34, 197, 94, 0.5)",
+                }}
+              >
+                Local
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs flex items-center gap-1 text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {lastUpdate?.toLocaleTimeString() || "--:--:--"}
+              </span>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="theme-toggle"
+                title="Toggle columns"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button onClick={toggleTheme} className="theme-toggle">
+                {theme === "dark" ? "☀️" : "🌙"}
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Bar */}
+          <div className="flex gap-1 mt-3 overflow-x-auto">
+            {getVisibleColumns().map((tabId) => {
+              const tab = allTabs.find((t) => t.id === tabId)!;
+              const isActive = activeTab === tabId;
+              return (
+                <button
+                  key={tabId}
+                  onClick={() => setActiveTab(tabId)}
+                  className={`tab-button ${isActive ? "active" : ""}`}
+                >
+                  <tab.icon className="w-4 h-4 inline mr-1" />
+                  {tab.label}
                 </button>
-                <button onClick={toggleTheme} className="theme-toggle">
-                  {theme === "dark" ? "☀️" : "🌙"}
-                </button>
+              );
+            })}
+          </div>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <div className="mt-3 p-3 rounded-lg border" style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">Toggle Columns</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allTabs.map((tab) => {
+                  const isVisible = visibleTabs.has(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => toggleTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all ${
+                        isVisible ? "bg-primary/20 text-primary" : "bg-surface-2 text-muted-foreground"
+                      }`}
+                    >
+                      {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                      <tab.icon className="w-3 h-3" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            {/* Settings Panel */}
-            {showSettings && (
-              <div
-                className="mt-3 p-3 rounded-lg border"
-                style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Settings className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
-                  <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
-                    Toggle Columns
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {allTabs.map((tab) => {
-                    const isVisible = visibleTabs.has(tab.id);
-                    const Icon = tab.id === "cpu" ? Cpu : tab.id === "gpu" ? Video : tab.id === "memory" ? MemoryStick : tab.id === "network" ? Wifi : HardDrive;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => toggleTab(tab.id)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all ${
-                          isVisible ? "bg-[var(--primary)]/20 text-[var(--primary)]" : "bg-[var(--surface-2)] text-[var(--muted-foreground)]"
-                        }`}
-                      >
-                        {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        <Icon className="w-3 h-3" />
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Columns Grid */}
-        <main className="max-w-7xl mx-auto px-4 py-4 h-[calc(100vh-80px)]">
+      {/* Columns Row */}
+      <main className="px-4 py-4">
+        <div className="flex gap-4 overflow-x-auto pb-2" style={{ height: "calc(100vh - 140px)" }}>
           {isLoading || !metrics ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="flex items-center gap-2" style={{ color: "var(--muted-foreground)" }}>
+            <div className="flex items-center justify-center w-full">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Activity className="w-4 h-4 animate-pulse" />
                 <span className="text-sm">Loading...</span>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full">
-              {getVisibleColumns().includes("cpu") && (
-                <CpuColumn data={metrics.cpu} />
-              )}
-              {getVisibleColumns().includes("gpu") && (
-                <GpuColumn gpus={metrics.gpu} />
-              )}
-              {getVisibleColumns().includes("memory") && (
-                <MemoryColumn data={metrics.memory} />
-              )}
-              {getVisibleColumns().includes("network") && (
-                <NetworkColumn data={metrics.network} />
-              )}
-              {getVisibleColumns().includes("disk") && (
-                <DiskColumn data={metrics.disk} />
-              )}
-            </div>
+            getVisibleColumns().map((tabId) => {
+              const isActive = activeTab === tabId;
+              const tab = allTabs.find((t) => t.id === tabId)!;
+              switch (tabId) {
+                case "cpu":
+                  return <CpuColumn key={tabId} data={metrics.cpu} isActive={isActive} onClick={() => setActiveTab(tabId)} />;
+                case "gpu":
+                  return (
+                    <GpuColumn
+                      key={tabId}
+                      gpus={metrics.gpu}
+                      rocmDetected={rocmDetected}
+                      rocmRuntimeVersion={rocmRuntimeVersion}
+                      isActive={isActive}
+                      onClick={() => setActiveTab(tabId)}
+                    />
+                  );
+                case "memory":
+                  return <MemoryColumn key={tabId} data={metrics.memory} isActive={isActive} onClick={() => setActiveTab(tabId)} />;
+                case "network":
+                  return <NetworkColumn key={tabId} data={metrics.network} isActive={isActive} onClick={() => setActiveTab(tabId)} />;
+                case "disk":
+                  return <DiskColumn key={tabId} data={metrics.disk} isActive={isActive} onClick={() => setActiveTab(tabId)} />;
+                default:
+                  return null;
+              }
+            })
           )}
-        </main>
-      </div>
-    </ThemeProvider>
+        </div>
+      </main>
+    </div>
   );
 }
 
