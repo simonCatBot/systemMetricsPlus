@@ -17,9 +17,6 @@ import {
   Zap,
   BrainCircuit,
   AlertTriangle,
-  Settings,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import Image from "next/image";
 import type { TabId } from "./TabContext";
@@ -584,7 +581,6 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [visibleTabs, setVisibleTabs] = useState<Set<TabId>>(new Set(["cpu", "gpu", "memory", "network", "disk"]));
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
-  const [showSettings, setShowSettings] = useState(false);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
@@ -662,30 +658,23 @@ function DashboardContent() {
                 <Clock className="w-3 h-3" />
                 {lastUpdate?.toLocaleTimeString() || "--:--:--"}
               </span>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="theme-toggle"
-                title="Toggle columns"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
               <button onClick={toggleTheme} className="theme-toggle">
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
             </div>
           </div>
 
-          {/* Tab Bar */}
+          {/* Tab Bar - all tabs, click to toggle visibility */}
           <div className="flex gap-1 mt-3">
-            {getVisibleColumns().map((tabId) => {
-              const tab = allTabs.find((t) => t.id === tabId)!;
-              const isActive = activeTab === tabId;
+            {allTabs.map((tab) => {
+              const isVisible = visibleTabs.has(tab.id);
+              const isActive = activeTab === tab.id;
               return (
                 <button
-                  key={tabId}
-                  onClick={() => toggleTab(tabId)}
-                  className={`tab-button flex-1 ${isActive ? "active" : ""}`}
-                  title={isActive ? "Click to hide" : "Click to show"}
+                  key={tab.id}
+                  onClick={() => toggleTab(tab.id)}
+                  className={`tab-button flex-1 ${isVisible ? (isActive ? "active" : "") : "opacity-50"}`}
+                  title={isVisible ? "Click to hide" : "Click to show"}
                 >
                   <tab.icon className="w-4 h-4 inline mr-1" />
                   {tab.label}
@@ -693,34 +682,6 @@ function DashboardContent() {
               );
             })}
           </div>
-
-          {/* Settings Panel */}
-          {showSettings && (
-            <div className="mt-3 p-3 rounded-lg border" style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Settings className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">Toggle Columns</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {allTabs.map((tab) => {
-                  const isVisible = visibleTabs.has(tab.id);
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => toggleTab(tab.id)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all ${
-                        isVisible ? "bg-primary/20 text-primary" : "bg-surface-2 text-muted-foreground"
-                      }`}
-                    >
-                      {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                      <tab.icon className="w-3 h-3" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
