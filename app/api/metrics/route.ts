@@ -7,13 +7,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 async function getCpuMetrics() {
-  const [cpu, cpuLoad, cpuSpeed, cpuTemp] = await Promise.all([
+  const [cpu, cpuLoad, cpuSpeed, cpuTemp, cpuCache] = await Promise.all([
     si.cpu(),
     si.currentLoad(),
     si.cpuCurrentSpeed(),
     si.cpuTemperature(),
+    si.cpuCache(),
   ]);
-  return { cpu, cpuLoad, cpuSpeed, cpuTemp };
+  return { cpu, cpuLoad, cpuSpeed, cpuTemp, cpuCache };
 }
 
 async function getMemoryMetrics() {
@@ -166,7 +167,7 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp }, mem, networkStats, diskArr, osInfo, gpuData] =
+    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp, cpuCache }, mem, networkStats, diskArr, osInfo, gpuData] =
       await Promise.all([
         getCpuMetrics(),
         getMemoryMetrics(),
@@ -180,15 +181,29 @@ export async function GET(): Promise<NextResponse> {
     const cpuMetrics = {
       name: cpu.brand || "Unknown CPU",
       usage: Math.round(cpuLoad.currentLoad),
+      usageUser: Math.round(cpuLoad.currentLoadUser),
+      usageSystem: Math.round(cpuLoad.currentLoadSystem),
       physicalCores: cpu.physicalCores || 0,
       logicalCores: cpu.cores || 0,
       temperature: cpuTemp.main !== null ? Math.round(cpuTemp.main) : null,
       speed: Math.round((cpu.speed || 0) * 1000),
       currentSpeedMHz: Math.round((cpuSpeed.avg || 0) * 1000),
+      maxSpeedMHz: Math.round((cpuSpeed.max || 0) * 1000),
+      minSpeedMHz: Math.round((cpuSpeed.min || 0) * 1000),
       loadAvg: cpuLoad.avgLoad
         ? ([cpuLoad.avgLoad, cpuLoad.avgLoad * 0.9, cpuLoad.avgLoad * 0.85] as [number, number, number])
         : ([0, 0, 0] as [number, number, number]),
       coreLoads: (cpuLoad.cpus || []).map((c: { load?: number }) => Math.round(c.load || 0)),
+      coreSpeeds: cpuSpeed.cores || [],
+      cache: cpuCache ? {
+        l1d: cpuCache.l1d,
+        l1i: cpuCache.l1i,
+        l2: cpuCache.l2,
+        l3: cpuCache.l3,
+      } : undefined,
+      flags: cpu.flags || "",
+      virtualization: cpu.virtualization || false,
+      governor: cpu.governor || "unknown",
     };
 
     // Memory metrics

@@ -1,13 +1,27 @@
 export interface CpuMetrics {
   name: string;
   usage: number;
+  usageUser: number;
+  usageSystem: number;
   physicalCores: number;
   logicalCores: number;
-  temperature: number | null;
+  temperature?: number | null;
   speed: number;
   currentSpeedMHz: number;
+  maxSpeedMHz: number;
+  minSpeedMHz: number;
   loadAvg: [number, number, number];
   coreLoads: number[];
+  coreSpeeds: number[];
+  cache?: {
+    l1d: number;
+    l1i: number;
+    l2: number;
+    l3: number;
+  };
+  flags: string;
+  virtualization: boolean;
+  governor: string;
 }
 
 export interface MemoryMetrics {
@@ -30,25 +44,25 @@ export interface GpuMetrics {
     total: number;
     used: number;
   };
-  temperature: number | null;
-  temperatureHotspot?: number;
-  temperatureMem?: number;
-  power: number | null;
+  temperature?: number | null;
+  temperatureHotspot?: number | null;
+  temperatureMem?: number | null;
+  power?: number | null;
   driverVersion: string;
   gfxVersion: string;
   deviceId: string;
   computeUnits: number;
   maxClockMHz: number;
   currentClockMHz: number;
-  memoryClockMHz?: number;
+  memoryClockMHz?: number | null;
   vbiosVersion?: string;
   pciBus?: string;
   vramType?: string;
   vramBitWidth?: number;
-  pcieWidth?: number;
-  pcieSpeed?: string;
-  eccCorrectable?: number;
-  eccUncorrectable?: number;
+  pcieWidth?: number | null;
+  pcieSpeed?: string | null;
+  eccCorrectable?: number | null;
+  eccUncorrectable?: number | null;
   isThrottling?: boolean;
 }
 

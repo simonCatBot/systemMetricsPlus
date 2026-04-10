@@ -160,7 +160,7 @@ function CpuColumn({
     );
   }
 
-  const { name, usage, physicalCores, logicalCores, temperature, currentSpeedMHz, loadAvg, coreLoads } = data;
+  const { name, usage, usageUser, usageSystem, physicalCores, logicalCores, temperature, currentSpeedMHz, maxSpeedMHz, minSpeedMHz, loadAvg, coreLoads, coreSpeeds, cache, flags, virtualization, governor } = data;
   const [load1, load5, load15] = loadAvg;
 
   return (
@@ -216,7 +216,7 @@ function CpuColumn({
 
       {/* CPU Stats */}
       <div className="flex flex-wrap gap-4 mb-3 text-xs text-muted-foreground">
-        {temperature !== null && temperature > 0 && (
+        {temperature !== null && temperature !== undefined && temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className="w-3 h-3" />
             <span>{formatTemp(temperature)}</span>
@@ -273,6 +273,88 @@ function CpuColumn({
           )}
         </div>
       )}
+
+      {/* User/System Breakdown */}
+      {(usageUser > 0 || usageSystem > 0) && (
+        <div className="mb-3 text-xs">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Load Breakdown</span>
+          <div className="flex gap-2 mt-1">
+            <div className="flex items-center gap-1">
+              <span className="text-primary">●</span>
+              <span className="text-muted-foreground">User:</span>
+              <span className="font-mono text-foreground">{usageUser}%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">●</span>
+              <span className="text-muted-foreground">System:</span>
+              <span className="font-mono text-foreground">{usageSystem}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-Core Clock Speeds */}
+      {coreSpeeds && coreSpeeds.length > 0 && (
+        <div className="mb-3">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Per-Core Speeds</span>
+          <div className="grid grid-cols-8 gap-1 mt-1">
+            {coreSpeeds.map((speed, i) => (
+              <div key={i} className="text-center">
+                <span className="text-[9px] text-muted-foreground">C{i}</span>
+                <p className="text-[10px] font-mono text-foreground">{(speed / 1000).toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cache Info */}
+      {cache && (
+        <div className="mb-3">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Cache</span>
+          <div className="grid grid-cols-4 gap-2 mt-1 text-xs">
+            <div className="flex flex-col">
+              <span className="text-[9px] text-muted-foreground">L1 Data</span>
+              <span className="font-mono text-foreground">{(cache.l1d / 1024).toFixed(0)} KB</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-muted-foreground">L1 Inst</span>
+              <span className="font-mono text-foreground">{(cache.l1i / 1024).toFixed(0)} KB</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-muted-foreground">L2</span>
+              <span className="font-mono text-foreground">{(cache.l2 / 1024).toFixed(0)} KB</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-muted-foreground">L3</span>
+              <span className="font-mono text-foreground">{(cache.l3 / (1024 * 1024)).toFixed(0)} MB</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CPU Features & Info */}
+      <div className="mb-3">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Features</span>
+        <div className="flex flex-wrap gap-1 mt-1">
+          {flags.includes("avx512f") && <span className="px-1.5 py-0.5 text-[9px] bg-primary/20 text-primary rounded">AVX-512</span>}
+          {flags.includes("aes") && <span className="px-1.5 py-0.5 text-[9px] bg-green-500/20 text-green-400 rounded">AES-NI</span>}
+          {flags.includes("sse4_1") && <span className="px-1.5 py-0.5 text-[9px] bg-blue-500/20 text-blue-400 rounded">SSE4.1</span>}
+          {flags.includes("sse4_2") && <span className="px-1.5 py-0.5 text-[9px] bg-blue-500/20 text-blue-400 rounded">SSE4.2</span>}
+          {flags.includes("fma") && <span className="px-1.5 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded">FMA</span>}
+          {flags.includes("sha_ni") && <span className="px-1.5 py-0.5 text-[9px] bg-orange-500/20 text-orange-400 rounded">SHA-NI</span>}
+          {flags.includes("rdpru") && <span className="px-1.5 py-0.5 text-[9px] bg-cyan-500/20 text-cyan-400 rounded">RAPL</span>}
+          {virtualization && <span className="px-1.5 py-0.5 text-[9px] bg-yellow-500/20 text-yellow-400 rounded">VT-x</span>}
+          <span className="px-1.5 py-0.5 text-[9px] bg-surface-2 text-muted-foreground rounded capitalize">{governor}</span>
+        </div>
+      </div>
+
+      {/* Clock Speed Range */}
+      {(maxSpeedMHz > 0 || minSpeedMHz > 0) && (
+        <div className="text-xs text-muted-foreground">
+          <span>Speed: {minSpeedMHz > 0 ? (minSpeedMHz / 1000).toFixed(2) : "?"} - {(maxSpeedMHz / 1000).toFixed(2)} GHz</span>
+        </div>
+      )}
     </Column>
   );
 }
@@ -308,7 +390,7 @@ function GpuColumn({
 
   const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
   const trainingStatus = getTrainingStatus(primaryGpu);
-  const isThrottling = primaryGpu.temperature !== null && primaryGpu.temperature > 83;
+  const isThrottling = primaryGpu.temperature !== null && primaryGpu.temperature !== undefined && primaryGpu.temperature > 83;
 
   return (
     <Column isActive={isActive} onClick={onClick}>
@@ -410,14 +492,14 @@ function GpuColumn({
 
       {/* GPU Stats Row - Expanded */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
-        {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
+        {primaryGpu.temperature !== null && primaryGpu.temperature !== undefined && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className={`w-3 h-3 ${isThrottling ? "text-red-500" : ""}`} />
             <span className={isThrottling ? "text-red-500" : ""}>{formatTemp(primaryGpu.temperature)}</span>
             {isThrottling && <span className="text-red-500 text-[10px]">⚠</span>}
           </div>
         )}
-        {primaryGpu.temperatureHotspot !== undefined && primaryGpu.temperatureHotspot > 0 && (
+        {primaryGpu.temperatureHotspot !== undefined && primaryGpu.temperatureHotspot !== null && primaryGpu.temperatureHotspot > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className={`w-3 h-3 ${primaryGpu.temperatureHotspot > 83 ? "text-red-500" : "text-orange-500"}`} />
             <span className={primaryGpu.temperatureHotspot > 83 ? "text-red-500" : "text-orange-500"}>
@@ -425,13 +507,13 @@ function GpuColumn({
             </span>
           </div>
         )}
-        {primaryGpu.temperatureMem !== undefined && primaryGpu.temperatureMem > 0 && (
+        {primaryGpu.temperatureMem !== undefined && primaryGpu.temperatureMem !== null && primaryGpu.temperatureMem > 0 && (
           <div className="flex items-center gap-1">
             <MemoryStick className="w-3 h-3 text-cyan-500" />
             <span className="text-cyan-500">Mem: {formatTemp(primaryGpu.temperatureMem)}</span>
           </div>
         )}
-        {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0 && (
+        {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz !== null && primaryGpu.currentClockMHz > 0 && (
           <div className="flex items-center gap-1">
             <Zap className="w-3 h-3" />
             <span>{formatMHz(primaryGpu.currentClockMHz)}</span>
@@ -443,7 +525,7 @@ function GpuColumn({
             <span>{primaryGpu.power.toFixed(2)}W</span>
           </div>
         )}
-        {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz > 0 && (
+        {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz !== null && primaryGpu.memoryClockMHz > 0 && (
           <div className="flex items-center gap-1">
             <MemoryStick className="w-3 h-3" />
             <span>{formatMHz(primaryGpu.memoryClockMHz)}</span>
@@ -463,7 +545,7 @@ function GpuColumn({
       {(primaryGpu.eccCorrectable !== undefined || primaryGpu.eccUncorrectable !== undefined) && (
         <div className="flex flex-wrap gap-3 text-xs mb-3">
           {primaryGpu.eccCorrectable !== undefined && (
-            <div className={`flex items-center gap-1 ${primaryGpu.eccCorrectable > 0 ? "text-yellow-500" : "text-muted-foreground"}`}>
+            <div className={`flex items-center gap-1 ${(primaryGpu.eccCorrectable ?? 0) > 0 ? "text-yellow-500" : "text-muted-foreground"}`}>
               <span>ECC Corr:</span>
               <span className="font-mono">{primaryGpu.eccCorrectable}</span>
             </div>
@@ -543,7 +625,7 @@ function GpuColumn({
                 <span className="font-mono text-foreground">{formatMHz(primaryGpu.maxClockMHz)}</span>
               </div>
             )}
-            {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz > 0 && (
+            {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz !== null && primaryGpu.memoryClockMHz > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Memory Clock:</span>
                 <span className="font-mono text-foreground">{formatMHz(primaryGpu.memoryClockMHz)}</span>

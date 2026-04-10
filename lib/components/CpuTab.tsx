@@ -140,7 +140,7 @@ export default function CpuTab({ data }: CpuTabProps) {
 
         {/* Stats */}
         <div className="flex flex-wrap gap-4">
-          {temperature !== null && temperature > 0 && (
+          {temperature !== null && temperature !== undefined && temperature > 0 && (
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
               <Thermometer className="w-3 h-3" />
               <span>{formatTemp(temperature)}</span>

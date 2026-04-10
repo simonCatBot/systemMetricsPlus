@@ -395,7 +395,7 @@ function parseRocmInfo(output: string): ROCmGPUInfo[] {
         !rocminfoMarketingName ||
         rocminfoMarketingName === "AMD Radeon Graphics" ||
         rocminfoMarketingName === "AMD GPU" ||
-        rocminfoMarketingName === gpu.name; // name and marketingName are both "gfx1151" in some ROCm versions
+        rocminfoMarketingName === nameMatch?.[1]?.trim(); // name and marketingName are both "gfx1151" in some ROCm versions
 
       gpus.push({
         index: gpuIndex++,
