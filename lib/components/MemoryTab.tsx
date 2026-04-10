@@ -112,7 +112,7 @@ export default function MemoryTab({
             },
           ]}
           height={200}
-          yAxisType="percent"
+          showPercent
         />
       </div>
 

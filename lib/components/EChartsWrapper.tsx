@@ -7,14 +7,14 @@ interface EChartsWrapperProps {
   series: LineSeriesConfig[];
   height?: number;
   showLegend?: boolean;
-  yAxisType?: "value" | "percent";
+  showPercent?: boolean;
 }
 
 export function EChartsWrapper({
   series,
   height = 300,
   showLegend = false,
-  yAxisType = "value",
+  showPercent = false,
 }: EChartsWrapperProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartInstance, setChartInstance] = useState<unknown>(null);
@@ -98,16 +98,16 @@ export function EChartsWrapper({
         splitLine: { show: false },
       },
       yAxis: {
-        type: yAxisType,
-        min: yAxisType === "percent" ? 0 : undefined,
-        max: yAxisType === "percent" ? 100 : undefined,
+        type: "value",
+        min: showPercent ? 0 : undefined,
+        max: showPercent ? 100 : undefined,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
           color: "#666",
           fontSize: 10,
           formatter: (value: number) =>
-            yAxisType === "percent" ? `${value}%` : value.toFixed(0),
+            showPercent ? `${value}%` : value.toFixed(0),
         },
         splitLine: {
           lineStyle: { color: "#222", type: "dashed" },
@@ -137,7 +137,7 @@ export function EChartsWrapper({
           : undefined,
       })),
     };
-  }, [series, showLegend, yAxisType]);
+  }, [series, showLegend, showPercent]);
 
   useEffect(() => {
     if (chartInstance) {

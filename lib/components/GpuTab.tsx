@@ -134,7 +134,7 @@ export default function GpuTab({
             },
           ]}
           height={180}
-          yAxisType="percent"
+          showPercent
         />
       </div>
 
@@ -150,7 +150,7 @@ export default function GpuTab({
             },
           ]}
           height={180}
-          yAxisType="percent"
+          showPercent
         />
       </div>
 

@@ -94,7 +94,7 @@ export default function DiskTab({
             },
           ]}
           height={200}
-          yAxisType="percent"
+          showPercent
         />
       </div>
 

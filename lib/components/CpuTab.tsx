@@ -125,7 +125,7 @@ export default function CpuTab({
             },
           ]}
           height={200}
-          yAxisType="percent"
+          showPercent
         />
       </div>
 
@@ -166,7 +166,7 @@ export default function CpuTab({
           }))}
           height={200}
           showLegend
-          yAxisType="percent"
+          showPercent
         />
       </div>
     </div>
