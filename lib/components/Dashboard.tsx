@@ -754,8 +754,8 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [visibleTabs, setVisibleTabs] = useState<Set<TabId>>(new Set(["cpu", "gpu", "memory", "network", "disk"]));
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
-  const [showPerCore, setShowPerCore] = useState(false);
-  const [showGpuHardware, setShowGpuHardware] = useState(false);
+  const [showPerCore, setShowPerCore] = useState(true);
+  const [showGpuHardware, setShowGpuHardware] = useState(true);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
