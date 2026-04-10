@@ -668,12 +668,11 @@ function DashboardContent() {
           <div className="flex gap-1 mt-3">
             {allTabs.map((tab) => {
               const isVisible = visibleTabs.has(tab.id);
-              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => toggleTab(tab.id)}
-                  className={`tab-button flex-1 ${isVisible ? (isActive ? "active" : "") : "opacity-50"}`}
+                  className={`tab-button flex-1 ${isVisible ? "active" : ""}`}
                   title={isVisible ? "Click to hide" : "Click to show"}
                 >
                   <tab.icon className="w-4 h-4 inline mr-1" />
