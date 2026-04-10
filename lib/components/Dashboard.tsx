@@ -99,14 +99,12 @@ function Column({ children, className = "", isActive = false, onClick }: ColumnP
   return (
     <div
       onClick={onClick}
-      className={`ui-panel p-4 h-full overflow-y-auto transition-all ${
+      className={`ui-panel p-4 h-full overflow-y-auto transition-all flex-1 min-w-0 ${
         isActive ? "ring-2 ring-primary/50" : ""
       } ${className}`}
       style={{
         background: "var(--panel)",
         borderColor: "var(--border)",
-        minWidth: "280px",
-        flexShrink: 0,
       }}
     >
       {children}
@@ -678,15 +676,16 @@ function DashboardContent() {
           </div>
 
           {/* Tab Bar */}
-          <div className="flex gap-1 mt-3 overflow-x-auto">
+          <div className="flex gap-1 mt-3">
             {getVisibleColumns().map((tabId) => {
               const tab = allTabs.find((t) => t.id === tabId)!;
               const isActive = activeTab === tabId;
               return (
                 <button
                   key={tabId}
-                  onClick={() => setActiveTab(tabId)}
-                  className={`tab-button ${isActive ? "active" : ""}`}
+                  onClick={() => toggleTab(tabId)}
+                  className={`tab-button flex-1 ${isActive ? "active" : ""}`}
+                  title={isActive ? "Click to hide" : "Click to show"}
                 >
                   <tab.icon className="w-4 h-4 inline mr-1" />
                   {tab.label}
@@ -727,9 +726,9 @@ function DashboardContent() {
 
       {/* Columns Row */}
       <main className="px-4 py-4">
-        <div className="flex gap-4 overflow-x-auto pb-2" style={{ height: "calc(100vh - 140px)" }}>
+        <div className="flex gap-4 pb-2" style={{ height: "calc(100vh - 140px)" }}>
           {isLoading || !metrics ? (
-            <div className="flex items-center justify-center w-full">
+            <div className="flex items-center justify-center flex-1">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Activity className="w-4 h-4 animate-pulse" />
                 <span className="text-sm">Loading...</span>
