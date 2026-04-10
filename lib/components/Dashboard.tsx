@@ -140,10 +140,14 @@ function CpuColumn({
   data,
   isActive,
   onClick,
+  showPerCore,
+  setShowPerCore,
 }: {
   data: SystemMetrics["cpu"] | null;
   isActive: boolean;
   onClick: () => void;
+  showPerCore: boolean;
+  setShowPerCore: (v: boolean) => void;
 }) {
   if (!data) {
     return (
@@ -163,13 +167,29 @@ function CpuColumn({
     <Column isActive={isActive} onClick={onClick}>
       <ColumnHeader title="Processor" icon={Cpu} isActive={isActive} onClick={onClick} />
 
-      {/* CPU Info */}
-      <div className="mb-3">
-        <p className="text-sm font-medium text-foreground truncate">{name}</p>
-        <div className="flex flex-wrap gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
+      {/* CPU Info - Prominent style */}
+      <div className="mb-3 p-3 bg-surface-1 border border-border rounded-lg">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="p-2 bg-primary/20 rounded-md">
+              <Cpu className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Processor</p>
+              <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span>{getProcessorLabel(name)}</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <span>{physicalCores} cores, {logicalCores} threads</span>
+          {currentSpeedMHz > 0 && (
+            <>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+              <span>{Math.round(currentSpeedMHz)} MHz</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -177,18 +197,20 @@ function CpuColumn({
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <Gauge className="w-3 h-3 text-primary" />
-            <span className="text-xs text-muted-foreground">Usage</span>
+            <Gauge className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">CPU Usage</span>
           </div>
-          <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
-            {Math.round(usage)}%
-          </span>
-        </div>
-        <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${usage > 80 ? "bg-red-500" : "bg-primary"}`}
-            style={{ width: `${Math.min(usage, 100)}%` }}
-          />
+          <div className="flex items-center gap-3">
+            <div className="w-32 h-2 bg-surface-2 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${usage > 80 ? "bg-red-500" : "bg-primary"}`}
+                style={{ width: `${Math.min(usage, 100)}%` }}
+              />
+            </div>
+            <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
+              {Math.round(usage)}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -206,42 +228,49 @@ function CpuColumn({
             <span>{Math.round(currentSpeedMHz)} MHz</span>
           </div>
         )}
-        <div className="flex items-center gap-1">
-          <Activity className="w-3 h-3" />
-          <span>Load: {formatLoad(load1)}</span>
-        </div>
-      </div>
-
-      {/* Load Averages */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {[{ label: "1m", value: load1 }, { label: "5m", value: load5 }, { label: "15m", value: load15 }].map(
-          ({ label, value }) => (
-            <div key={label} className="text-center p-2 bg-surface-2 rounded">
-              <p
-                className={`text-lg font-bold ${value > logicalCores ? "text-red-500" : "text-foreground"}`}
-              >
-                {formatLoad(value)}
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
-            </div>
-          )
+        {load1 > 0 && (
+          <div className="flex items-center gap-1">
+            <Activity className="w-3 h-3" />
+            <span>Load: {formatLoad(load1)}</span>
+          </div>
         )}
       </div>
 
-      {/* Per-Core Usage */}
+      {/* Per-Core Usage - collapsible */}
       {coreLoads.length > 0 && (
-        <div>
-          <p className="text-[10px] text-muted-foreground uppercase mb-2">Per-Core</p>
-          <div className="grid grid-cols-4 gap-1">
-            {coreLoads.slice(0, 8).map((load, i) => (
-              <div key={i} className="text-center p-1 bg-surface-2 rounded">
-                <p className="text-[10px] text-muted-foreground">C{i}</p>
-                <p className={`text-xs font-bold ${load > 80 ? "text-red-500" : "text-foreground"}`}>
-                  {load}%
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="pt-2 border-t border-border/30">
+          <button
+            type="button"
+            onClick={() => setShowPerCore(!showPerCore)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Per-Core Usage
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {showPerCore ? "▲" : "▼"}
+            </span>
+          </button>
+          {showPerCore && (
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {coreLoads.map((load, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>C{i}</span>
+                    <span className={load > 80 ? "text-red-500 font-bold" : ""}>{load}%</span>
+                  </div>
+                  <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        load > 80 ? "bg-red-500" : load > 50 ? "bg-yellow-500" : "bg-primary"
+                      }`}
+                      style={{ width: `${Math.min(load, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </Column>
@@ -581,6 +610,7 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [visibleTabs, setVisibleTabs] = useState<Set<TabId>>(new Set(["cpu", "gpu", "memory", "network", "disk"]));
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
+  const [showPerCore, setShowPerCore] = useState(false);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
@@ -700,7 +730,7 @@ function DashboardContent() {
               const tab = allTabs.find((t) => t.id === tabId)!;
               switch (tabId) {
                 case "cpu":
-                  return <CpuColumn key={tabId} data={metrics.cpu} isActive={isActive} onClick={() => setActiveTab(tabId)} />;
+                  return <CpuColumn key={tabId} data={metrics.cpu} isActive={isActive} onClick={() => setActiveTab(tabId)} showPerCore={showPerCore} setShowPerCore={setShowPerCore} />;
                 case "gpu":
                   return (
                     <GpuColumn
