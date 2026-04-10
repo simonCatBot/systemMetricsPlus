@@ -32,7 +32,7 @@ const allTabs: { id: TabId; label: string; icon: React.ComponentType<{ className
 ];
 
 function formatGB(gb: number) {
-  return `${gb.toFixed(1)} GB`;
+  return `${gb.toFixed(2)} GB`;
 }
 
 function formatTemp(temp: number | null) {
@@ -41,9 +41,9 @@ function formatTemp(temp: number | null) {
 
 function formatSpeed(kbps: number) {
   if (kbps >= 1024) {
-    return `${(kbps / 1024).toFixed(1)} MB/s`;
+    return `${(kbps / 1024).toFixed(2)} MB/s`;
   }
-  return `${kbps} KB/s`;
+  return `${kbps.toFixed(2)} KB/s`;
 }
 
 function formatMHz(mhz: number | null | undefined) {
@@ -440,7 +440,7 @@ function GpuColumn({
         {primaryGpu.power != null && primaryGpu.power > 0 && (
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3" />
-            <span>{primaryGpu.power.toFixed(1)}W</span>
+            <span>{primaryGpu.power.toFixed(2)}W</span>
           </div>
         )}
         {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz > 0 && (
@@ -600,22 +600,22 @@ function MemoryColumn({
       {/* Memory Stats */}
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="text-center p-2 bg-surface-2 rounded">
-          <p className="text-lg font-bold text-green-400">{used.toFixed(1)}</p>
+          <p className="text-lg font-bold text-green-400">{used.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground uppercase">Used</p>
         </div>
         <div className="text-center p-2 bg-surface-2 rounded">
-          <p className="text-lg font-bold text-foreground">{free.toFixed(1)}</p>
+          <p className="text-lg font-bold text-foreground">{free.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground uppercase">Free</p>
         </div>
         <div className="text-center p-2 bg-surface-2 rounded">
-          <p className="text-lg font-bold text-cyan-400">{swapUsed.toFixed(1)}</p>
+          <p className="text-lg font-bold text-cyan-400">{swapUsed.toFixed(2)}</p>
           <p className="text-[10px] text-muted-foreground uppercase">Swap</p>
         </div>
       </div>
 
       {/* Total */}
       <div className="text-center p-3 bg-surface-2 rounded">
-        <p className="text-2xl font-bold text-foreground">{total.toFixed(1)} GB</p>
+        <p className="text-2xl font-bold text-foreground">{total.toFixed(2)} GB</p>
         <p className="text-[10px] text-muted-foreground uppercase">Total</p>
       </div>
     </Column>
