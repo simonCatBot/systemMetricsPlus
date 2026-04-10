@@ -388,13 +388,14 @@ function parseRocmInfo(output: string): ROCmGPUInfo[] {
       const maxClockMHz = parseInt(maxClockMatch?.[1] || "0", 10);
       const gfxVersion = gfxVersionMatch?.[1]?.trim() || "unknown";
 
-      // rocminfo often reports generic names like "AMD Radeon Graphics"
+      // rocminfo often reports generic names like "AMD Radeon Graphics" or "gfx1151"
       // When detected, use our computed marketing name instead
       const rocminfoMarketingName = marketingNameMatch?.[1]?.trim();
       const isGenericMarketingName =
         !rocminfoMarketingName ||
         rocminfoMarketingName === "AMD Radeon Graphics" ||
-        rocminfoMarketingName === "AMD GPU";
+        rocminfoMarketingName === "AMD GPU" ||
+        rocminfoMarketingName === gpu.name; // name and marketingName are both "gfx1151" in some ROCm versions
 
       gpus.push({
         index: gpuIndex++,
@@ -1006,7 +1007,7 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
 
       // Merge amd-smi static info (override with more accurate values)
       if (amdStatic) {
-        if (amdStatic.marketingName) {
+        if (amdStatic.marketingName && amdStatic.marketingName !== "AMD Radeon Graphics") {
           gpu.marketingName = amdStatic.marketingName;
         }
         if (amdStatic.deviceId) {
