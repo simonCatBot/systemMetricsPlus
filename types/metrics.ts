@@ -38,6 +38,10 @@ export interface GpuMetrics {
   computeUnits: number;
   maxClockMHz: number;
   currentClockMHz: number;
+  memoryClockMHz?: number;
+  vbiosVersion?: string;
+  pciBus?: string;
+  isThrottling?: boolean;
 }
 
 export interface NetworkMetrics {

@@ -71,6 +71,10 @@ interface GpuOutput {
   computeUnits: number;
   maxClockMHz: number;
   currentClockMHz: number;
+  memoryClockMHz?: number;
+  vbiosVersion?: string;
+  pciBus?: string;
+  isThrottling?: boolean;
 }
 
 async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boolean; rocmRuntimeVersion: string }> {
@@ -94,6 +98,10 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
           computeUnits: gpu.computeUnits,
           maxClockMHz: gpu.maxClockMHz,
           currentClockMHz: gpu.currentClockMHz || 0,
+          memoryClockMHz: gpu.memoryClockMHz,
+          vbiosVersion: gpu.vbiosVersion,
+          pciBus: gpu.pciBus,
+          isThrottling: gpu.temperature !== undefined && gpu.temperature > 83,
         })),
         rocmDetected: true,
         rocmRuntimeVersion: rocData.runtimeVersion || "",

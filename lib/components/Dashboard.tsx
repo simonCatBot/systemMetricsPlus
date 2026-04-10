@@ -308,6 +308,7 @@ function GpuColumn({
 
   const vramStatus = getVramStatus(primaryGpu.memory?.used ?? null, primaryGpu.memory?.total ?? null);
   const trainingStatus = getTrainingStatus(primaryGpu);
+  const isThrottling = primaryGpu.temperature !== null && primaryGpu.temperature > 83;
 
   return (
     <Column isActive={isActive} onClick={onClick}>
@@ -411,8 +412,9 @@ function GpuColumn({
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         {primaryGpu.temperature !== null && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
-            <Thermometer className="w-3 h-3" />
-            <span>{formatTemp(primaryGpu.temperature)}</span>
+            <Thermometer className={`w-3 h-3 ${isThrottling ? "text-red-500" : ""}`} />
+            <span className={isThrottling ? "text-red-500" : ""}>{formatTemp(primaryGpu.temperature)}</span>
+            {isThrottling && <span className="text-red-500 text-[10px]">⚠</span>}
           </div>
         )}
         {primaryGpu.currentClockMHz !== undefined && primaryGpu.currentClockMHz > 0 && (
@@ -425,6 +427,12 @@ function GpuColumn({
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3" />
             <span>{primaryGpu.power.toFixed(1)}W</span>
+          </div>
+        )}
+        {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz > 0 && (
+          <div className="flex items-center gap-1">
+            <MemoryStick className="w-3 h-3" />
+            <span>{formatMHz(primaryGpu.memoryClockMHz)}</span>
           </div>
         )}
       </div>
@@ -444,38 +452,60 @@ function GpuColumn({
       )}
 
       {/* GPU Hardware Details - collapsible */}
-      {(primaryGpu.deviceId || primaryGpu.driverVersion) && (
-        <div className="pt-2 mt-3 border-t border-border/30">
-          <button
-            type="button"
-            onClick={() => setShowGpuHardware(!showGpuHardware)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Hardware Details
-            </p>
-            <span className="text-[10px] text-muted-foreground">
-              {showGpuHardware ? "▲" : "▼"}
-            </span>
-          </button>
-          {showGpuHardware && (
-            <div className="space-y-1 mt-2">
-              {primaryGpu.deviceId && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Device ID:</span>
-                  <span className="font-mono text-foreground">{primaryGpu.deviceId}</span>
-                </div>
-              )}
-              {primaryGpu.driverVersion && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Driver:</span>
-                  <span className="font-mono text-foreground">{primaryGpu.driverVersion}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="pt-2 mt-3 border-t border-border/30">
+        <button
+          type="button"
+          onClick={() => setShowGpuHardware(!showGpuHardware)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            Hardware Details
+          </p>
+          <span className="text-[10px] text-muted-foreground">
+            {showGpuHardware ? "▲" : "▼"}
+          </span>
+        </button>
+        {showGpuHardware && (
+          <div className="space-y-1 mt-2">
+            {primaryGpu.deviceId && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Device ID:</span>
+                <span className="font-mono text-foreground">{primaryGpu.deviceId}</span>
+              </div>
+            )}
+            {primaryGpu.driverVersion && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Driver:</span>
+                <span className="font-mono text-foreground">{primaryGpu.driverVersion}</span>
+              </div>
+            )}
+            {primaryGpu.vbiosVersion && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">VBIOS:</span>
+                <span className="font-mono text-foreground">{primaryGpu.vbiosVersion}</span>
+              </div>
+            )}
+            {primaryGpu.pciBus && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PCI Bus:</span>
+                <span className="font-mono text-foreground">{primaryGpu.pciBus}</span>
+              </div>
+            )}
+            {primaryGpu.maxClockMHz !== undefined && primaryGpu.maxClockMHz > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Max Clock:</span>
+                <span className="font-mono text-foreground">{formatMHz(primaryGpu.maxClockMHz)}</span>
+              </div>
+            )}
+            {primaryGpu.memoryClockMHz !== undefined && primaryGpu.memoryClockMHz > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Memory Clock:</span>
+                <span className="font-mono text-foreground">{formatMHz(primaryGpu.memoryClockMHz)}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </Column>
   );
 }

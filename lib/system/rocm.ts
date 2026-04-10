@@ -36,6 +36,7 @@ export interface ROCmGPUInfo {
   temperature?: number; // celsius
   power?: number; // watts
   currentClockMHz?: number;
+  memoryClockMHz?: number;
 }
 
 interface ROCmSystemInfo {
