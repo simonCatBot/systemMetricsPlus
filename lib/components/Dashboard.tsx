@@ -18,11 +18,14 @@ import {
   Clock,
   Wifi,
   Video,
+  Settings,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const UPDATE_INTERVAL = 2000;
 
-const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const tabConfig: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "cpu", label: "CPU", icon: Cpu },
   { id: "gpu", label: "GPU", icon: Video },
   { id: "memory", label: "Memory", icon: MemoryStick },
@@ -32,10 +35,11 @@ const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
 
 function DashboardContent() {
   const { theme, toggleTheme } = useTheme();
-  const { activeTab, setActiveTab } = useTabs();
+  const { activeTab, setActiveTab, visibleTabs, toggleTab } = useTabs();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showTabSettings, setShowTabSettings] = useState(false);
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -68,7 +72,6 @@ function DashboardContent() {
       case "network":
         return <NetworkTab data={metrics?.network ?? null} />;
       case "disk":
-        // Disk is shown inside Memory tab, so show memory tab content
         return <MemoryTab memory={metrics?.memory ?? null} disk={metrics?.disk ?? null} />;
       default:
         return null;
@@ -116,24 +119,76 @@ function DashboardContent() {
                 <Clock className="w-3 h-3" />
                 {lastUpdate?.toLocaleTimeString() || "--:--:--"}
               </span>
+              <button
+                onClick={() => setShowTabSettings(!showTabSettings)}
+                className="theme-toggle"
+                title="Toggle tab visibility"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
               <button onClick={toggleTheme} className="theme-toggle">
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
             </div>
           </div>
 
+          {/* Tab Settings Dropdown */}
+          {showTabSettings && (
+            <div
+              className="mt-3 p-3 rounded-lg border"
+              style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-3 h-3" style={{ color: "var(--muted-foreground)" }} />
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Toggle Tabs
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tabConfig.map((tab) => {
+                  const isVisible = visibleTabs.has(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => toggleTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-all ${
+                        isVisible
+                          ? "bg-[var(--primary)]/20 text-[var(--primary)]"
+                          : "bg-[var(--surface-2)] text-[var(--muted-foreground)]"
+                      }`}
+                    >
+                      {isVisible ? (
+                        <Eye className="w-3 h-3" />
+                      ) : (
+                        <EyeOff className="w-3 h-3" />
+                      )}
+                      <tab.icon className="w-3 h-3" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Tab Bar */}
           <div className="flex gap-1 mt-3 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
-              >
-                <tab.icon className="w-4 h-4 inline mr-1" />
-                {tab.label}
-              </button>
-            ))}
+            {tabConfig.map((tab) => {
+              if (!visibleTabs.has(tab.id)) return null;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
+                >
+                  <tab.icon className="w-4 h-4 inline mr-1" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
