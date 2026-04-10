@@ -296,12 +296,12 @@ function CpuColumn({
       {/* Per-Core Clock Speeds */}
       {coreSpeeds && coreSpeeds.length > 0 && (
         <div className="mb-3">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Per-Core Speeds</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Per-Core Speeds (GHz)</span>
           <div className="grid grid-cols-8 gap-1 mt-1">
             {coreSpeeds.map((speed, i) => (
               <div key={i} className="text-center">
                 <span className="text-[9px] text-muted-foreground">C{i}</span>
-                <p className="text-[10px] font-mono text-foreground">{(speed / 1000).toFixed(2)}</p>
+                <p className="text-[10px] font-mono text-foreground">{speed.toFixed(2)}</p>
               </div>
             ))}
           </div>
