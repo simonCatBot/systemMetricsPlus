@@ -73,27 +73,31 @@ interface GpuOutput {
   currentClockMHz: number;
 }
 
-async function getGpuMetrics(): Promise<GpuOutput[]> {
+async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boolean; rocmRuntimeVersion: string }> {
   // First try ROCm detection
   try {
     const rocData = await detectROCm();
     if (rocData.gpus && rocData.gpus.length > 0) {
-      return rocData.gpus.map((gpu) => ({
-        index: gpu.index,
-        name: gpu.name,
-        marketingName: gpu.marketingName,
-        vendor: gpu.vendor,
-        usage: 0,
-        memory: gpu.memory || { total: 0, used: 0 },
-        temperature: gpu.temperature ?? null,
-        power: gpu.power ?? null,
-        driverVersion: gpu.driverVersion || "Unknown",
-        gfxVersion: gpu.gfxVersion,
-        deviceId: gpu.deviceId || "N/A",
-        computeUnits: gpu.computeUnits,
-        maxClockMHz: gpu.maxClockMHz,
-        currentClockMHz: gpu.currentClockMHz || 0,
-      }));
+      return {
+        gpus: rocData.gpus.map((gpu) => ({
+          index: gpu.index,
+          name: gpu.name,
+          marketingName: gpu.marketingName,
+          vendor: gpu.vendor,
+          usage: 0,
+          memory: gpu.memory || { total: 0, used: 0 },
+          temperature: gpu.temperature ?? null,
+          power: gpu.power ?? null,
+          driverVersion: gpu.driverVersion || "Unknown",
+          gfxVersion: gpu.gfxVersion,
+          deviceId: gpu.deviceId || "N/A",
+          computeUnits: gpu.computeUnits,
+          maxClockMHz: gpu.maxClockMHz,
+          currentClockMHz: gpu.currentClockMHz || 0,
+        })),
+        rocmDetected: true,
+        rocmRuntimeVersion: rocData.runtimeVersion || "",
+      };
     }
   } catch (e) {
     console.warn("ROCm detection failed:", e);
@@ -105,36 +109,40 @@ async function getGpuMetrics(): Promise<GpuOutput[]> {
     const controllers = graphics.controllers || [];
     if (controllers.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return controllers.map((gpu: any, index: number) => ({
-        index,
-        name: String(gpu.model || "Unknown GPU"),
-        marketingName: String(gpu.model || "Unknown GPU"),
-        vendor: String(gpu.vendor || "Unknown"),
-        usage: Number(gpu.utilizationGpu ?? 0),
-        memory: {
-          total: Number(gpu.memoryTotal ?? 0) / (1024 * 1024 * 1024),
-          used: Number(gpu.memoryUsed ?? 0) / (1024 * 1024 * 1024),
-        },
-        temperature: Number(gpu.temperatureGpu ?? 0) || null,
-        power: Number(gpu.powerDraw ?? 0) || null,
-        driverVersion: String(gpu.driverVersion || "Unknown"),
-        gfxVersion: "N/A",
-        deviceId: "N/A",
-        computeUnits: 0,
-        maxClockMHz: 0,
-        currentClockMHz: Number(gpu.clockCore ?? 0),
-      }));
+      return {
+        gpus: controllers.map((gpu: any, index: number) => ({
+          index,
+          name: String(gpu.model || "Unknown GPU"),
+          marketingName: String(gpu.model || "Unknown GPU"),
+          vendor: String(gpu.vendor || "Unknown"),
+          usage: Number(gpu.utilizationGpu ?? 0),
+          memory: {
+            total: Number(gpu.memoryTotal ?? 0) / (1024 * 1024 * 1024),
+            used: Number(gpu.memoryUsed ?? 0) / (1024 * 1024 * 1024),
+          },
+          temperature: Number(gpu.temperatureGpu ?? 0) || null,
+          power: Number(gpu.powerDraw ?? 0) || null,
+          driverVersion: String(gpu.driverVersion || "Unknown"),
+          gfxVersion: "N/A",
+          deviceId: "N/A",
+          computeUnits: 0,
+          maxClockMHz: 0,
+          currentClockMHz: Number(gpu.clockCore ?? 0),
+        })),
+        rocmDetected: false,
+        rocmRuntimeVersion: "",
+      };
     }
   } catch (e) {
     console.warn("Graphics detection failed:", e);
   }
 
-  return [];
+  return { gpus: [], rocmDetected: false, rocmRuntimeVersion: "" };
 }
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp }, mem, networkStats, diskArr, osInfo, gpuArray] =
+    const [{ cpu, cpuLoad, cpuSpeed, cpuTemp }, mem, networkStats, diskArr, osInfo, gpuData] =
       await Promise.all([
         getCpuMetrics(),
         getMemoryMetrics(),
@@ -217,10 +225,12 @@ export async function GET(): Promise<NextResponse> {
       timestamp: Date.now(),
       cpu: cpuMetrics,
       memory: memoryMetrics,
-      gpu: gpuArray,
+      gpu: gpuData.gpus,
       network: networkMetrics,
       disk: diskMetrics,
       os: osMetrics,
+      rocmDetected: gpuData.rocmDetected,
+      rocmRuntimeVersion: gpuData.rocmRuntimeVersion,
     };
 
     return NextResponse.json(response);

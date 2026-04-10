@@ -86,4 +86,6 @@ export interface SystemMetrics {
     hostname: string;
     arch: string;
   };
+  rocmDetected: boolean;
+  rocmRuntimeVersion: string;
 }

@@ -722,8 +722,8 @@ function DashboardContent() {
     return order.filter((id) => visibleTabs.has(id));
   };
 
-  const rocmDetected = metrics?.gpu.some((g) => g.gfxVersion && g.gfxVersion !== "N/A") ?? false;
-  const rocmRuntimeVersion = metrics?.gpu.find((g) => g.driverVersion)?.driverVersion ?? "";
+  const rocmDetected = metrics?.rocmDetected ?? metrics?.gpu.some((g) => g.gfxVersion && g.gfxVersion !== "N/A") ?? false;
+  const rocmRuntimeVersion = metrics?.rocmRuntimeVersion ?? "";
 
   return (
     <div className="min-h-screen overflow-hidden" style={{ background: "var(--background)" }}>
