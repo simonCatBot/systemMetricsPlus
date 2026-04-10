@@ -809,33 +809,20 @@ function DashboardContent() {
         style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
       >
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Image src="/logo.svg" alt="Logo" width={24} height={24} className="w-6 h-6" />
-                <h1 className="text-lg font-semibold text-foreground">System Metrics</h1>
-              </div>
-              <span
-                className="px-2 py-0.5 text-[10px] rounded-full"
-                style={{
-                  background: "rgba(34, 197, 94, 0.2)",
-                  color: "#22c55e",
-                  border: "1px solid rgba(34, 197, 94, 0.5)",
-                }}
-              >
-                Local
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs flex items-center gap-1 text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                {lastUpdate?.toLocaleTimeString() || "--:--:--"}
-              </span>
-              <button onClick={toggleTheme} className="theme-toggle">
-                {theme === "dark" ? "☀️" : "🌙"}
-              </button>
-            </div>
+          <div className="flex items-center justify-center">
+            <Image src="/logo.svg" alt="Logo" width={24} height={24} className="w-6 h-6 mr-2" />
+            <h1 className="text-lg font-semibold text-foreground">System Metrics</h1>
           </div>
+          <div className="flex items-center justify-end gap-3 mt-2">
+            <span className="text-xs flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              {lastUpdate?.toLocaleTimeString() || "--:--:--"}
+            </span>
+            <button onClick={toggleTheme} className="theme-toggle">
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+          </div>
+        </div>
 
           {/* Tab Bar - all tabs, click to toggle visibility */}
           <div className="flex gap-1 mt-3">
