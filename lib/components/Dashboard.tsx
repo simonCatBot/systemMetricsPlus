@@ -810,7 +810,7 @@ function DashboardContent() {
       >
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-center">
-            <Image src="/logo.svg" alt="Logo" width={24} height={24} className="w-6 h-6 mr-2" />
+            <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" />
             <h1 className="text-lg font-semibold text-foreground">System Metrics</h1>
           </div>
           <div className="flex items-center justify-end gap-3 mt-2">
