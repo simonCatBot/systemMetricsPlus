@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { TabProvider, useTabs } from "./TabContext";
+import { useTheme, ThemeProvider } from "./ThemeContext";
 import CpuTab from "./CpuTab";
 import GpuTab from "./GpuTab";
 import MemoryTab from "./MemoryTab";
@@ -191,17 +192,23 @@ function DashboardContent() {
     }
   };
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">System Metrics Plus</h1>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                {metrics?.os.hostname || "Loading..."} • {metrics?.os.distro || ""} {metrics?.os.arch || ""}
-              </p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold">System Metrics Plus</h1>
+              <button
+                onClick={toggleTheme}
+                className="theme-toggle"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
             </div>
             <div className="text-right">
               <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
@@ -261,7 +268,9 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <TabProvider>
-      <DashboardContent />
+      <ThemeProvider>
+        <DashboardContent />
+      </ThemeProvider>
     </TabProvider>
   );
 }
