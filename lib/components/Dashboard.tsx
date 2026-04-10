@@ -918,7 +918,7 @@ function DashboardContent() {
 
       {/* Columns Row */}
       <main className="px-4 py-4">
-        <div className="flex gap-4 pb-2" style={{ height: "calc(100vh - 180px)" }}>
+        <div className="flex gap-4 pb-2" style={{ height: "calc(100vh - 220px)" }}>
           {isLoading || !metrics ? (
             <div className="flex items-center justify-center flex-1">
               <div className="flex items-center gap-2 text-muted-foreground">
