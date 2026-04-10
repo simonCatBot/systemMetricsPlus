@@ -20,13 +20,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("theme") as Theme | null;
     if (saved) {
       setThemeState(saved);
-      document.documentElement.setAttribute("data-theme", saved);
+      document.documentElement.classList.toggle("dark", saved === "dark");
     } else {
       // Check system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       const initial = prefersDark ? "dark" : "light";
       setThemeState(initial);
-      document.documentElement.setAttribute("data-theme", initial);
+      document.documentElement.classList.toggle("dark", initial === "dark");
     }
   }, []);
 
@@ -34,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const newTheme = theme === "dark" ? "light" : "dark";
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
   const setTheme = (newTheme: Theme) => {

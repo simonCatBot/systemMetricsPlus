@@ -818,9 +818,6 @@ function DashboardContent() {
               <Clock className="w-3 h-3" />
               {lastUpdate?.toLocaleTimeString() || "--:--:--"}
             </span>
-            <button onClick={toggleTheme} className="theme-toggle">
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
           </div>
 
           {/* Tab Bar - all tabs, click to toggle visibility */}
@@ -886,6 +883,35 @@ function DashboardContent() {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-sm"
+        style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-end gap-4">
+          <span className="text-xs text-muted-foreground">
+            {new Date().toLocaleString()}
+          </span>
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 px-3 py-1 rounded-md border transition-colors hover:bg-surface-2"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {theme === "dark" ? (
+              <>
+                <span>☀️</span>
+                <span className="text-xs text-foreground">Light</span>
+              </>
+            ) : (
+              <>
+                <span>🌙</span>
+                <span className="text-xs text-foreground">Dark</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
