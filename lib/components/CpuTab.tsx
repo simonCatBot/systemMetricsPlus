@@ -173,7 +173,7 @@ export default function CpuTab({
           series={history.coreLoads.map((core, i) => ({
             name: `Core ${i}`,
             data: core.data,
-            color: `hsl(${(i * 360) / history.coreLoads.length}, 70%, 50%)`,
+            color: `hsl(${(i * 360) / Math.max(history.coreLoads.length, 1)}, 70%, 50%)`,
           }))}
           height={200}
           showLegend
@@ -183,3 +183,15 @@ export default function CpuTab({
     </div>
   );
 }
+
+// Default colors for when none provided - using theme colors
+const defaultChartColors = [
+  '#00e5cc', // Teal (accent)
+  '#FF4D4D', // Coral Red (primary)
+  '#3b82f6', // Blue (info)
+  '#22c55e', // Green (success)
+  '#f59e0b', // Amber (warning)
+  '#8b5cf6', // Purple
+  '#06b6d4', // Cyan
+  '#ec4899', // Pink
+];

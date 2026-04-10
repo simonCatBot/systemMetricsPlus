@@ -3,6 +3,44 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { ChartDataPoint, LineSeriesConfig } from "./charts";
 
+// Helper to convert HSL to hex for alpha blending
+function hslToRgba(h: number, s: number, l: number, a: number): string {
+  s /= 100;
+  l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  return `rgba(${Math.round((r + m) * 255)}, ${Math.round((g + m) * 255)}, ${Math.round((b + m) * 255)}, ${a})`;
+}
+
+function addAlphaToColor(color: string, alpha: number): string {
+  // If it's an HSL color (starts with hsl)
+  if (color.startsWith('hsl')) {
+    const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+    if (match) {
+      return hslToRgba(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), alpha);
+    }
+  }
+  // If it's hex, convert to rgba
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const bigint = parseInt(hex, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  // Fallback - just return as is
+  return color;
+}
+
 interface EChartsWrapperProps {
   series: LineSeriesConfig[];
   height?: number;
@@ -129,8 +167,8 @@ export function EChartsWrapper({
                 type: "linear",
                 x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                  { offset: 0, color: `${s.color}40` },
-                  { offset: 1, color: `${s.color}05` },
+                  { offset: 0, color: addAlphaToColor(s.color, 0.4) },
+                  { offset: 1, color: addAlphaToColor(s.color, 0.05) },
                 ],
               },
             }
