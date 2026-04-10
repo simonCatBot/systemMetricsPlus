@@ -19,7 +19,6 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
-import Image from "next/image";
 import type { TabId } from "./TabContext";
 
 const UPDATE_INTERVAL = 2000;
