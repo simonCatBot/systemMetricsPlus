@@ -813,12 +813,6 @@ function DashboardContent() {
             <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" />
             <h1 className="text-2xl font-bold text-foreground">System Metrics <span className="text-primary">Plus</span></h1>
           </div>
-          <div className="flex items-center justify-end gap-3 mt-2">
-            <span className="text-xs flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              {lastUpdate?.toLocaleTimeString() || "--:--:--"}
-            </span>
-          </div>
 
           {/* Tab Bar - all tabs, click to toggle visibility */}
           <div className="flex gap-1 mt-3">
@@ -884,32 +878,49 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* Footer */}
+      {/* Footer - Quick Stats */}
       <div
         className="fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-sm"
         style={{ background: "var(--panel)", borderColor: "var(--panel-border)" }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-end gap-4">
-          <span className="text-xs text-muted-foreground">
-            {new Date().toLocaleString()}
-          </span>
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-2 px-3 py-1 rounded-md border transition-colors hover:bg-surface-2"
-            style={{ borderColor: "var(--border)" }}
-          >
-            {theme === "dark" ? (
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          {/* Left: Quick GPU stats */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            {metrics?.gpu?.[0] && (
               <>
-                <span>☀️</span>
-                <span className="text-xs text-foreground">Light</span>
-              </>
-            ) : (
-              <>
-                <span>🌙</span>
-                <span className="text-xs text-foreground">Dark</span>
+                <span className="flex items-center gap-1">
+                  <Thermometer className="w-3 h-3" />
+                  GPU: {metrics.gpu[0].temperature ?? 0}°C
+                </span>
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  {metrics.gpu[0].power ?? 0}W
+                </span>
+                <span className="flex items-center gap-1">
+                  <MemoryStick className="w-3 h-3" />
+                  VRAM: {formatGB(metrics.gpu[0].memory?.used ?? 0)} / {formatGB(metrics.gpu[0].memory?.total ?? 0)}
+                </span>
               </>
             )}
-          </button>
+            <span className="flex items-center gap-1">
+              <Activity className="w-3 h-3" />
+              CPU: {metrics?.cpu?.usage ?? 0}%
+            </span>
+          </div>
+
+          {/* Right: Theme toggle */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-muted-foreground">
+              {lastUpdate?.toLocaleTimeString() || "--:--:--"}
+            </span>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 px-3 py-1 rounded-md border transition-colors hover:bg-surface-2"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
