@@ -1,12 +1,14 @@
 {
   "name": "system-metrics-plus",
   "version": "0.1.0",
-  "private": true,
+  "description": "Real-time system monitoring dashboard with Apache ECharts",
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "echarts": "^6.0.0",
