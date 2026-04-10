@@ -128,7 +128,7 @@ function ColumnHeader({
       }`}
     >
       <Icon className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-      <h3 className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+      <h3 className={`text-base font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
         {title}
       </h3>
     </button>
@@ -175,12 +175,12 @@ function CpuColumn({
               <Cpu className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Processor</p>
-              <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+              <p className="text-base text-muted-foreground uppercase tracking-wider">Processor</p>
+              <p className="text-base font-semibold text-foreground truncate">{name}</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-4 text-base text-muted-foreground">
           <span>{getProcessorLabel(name)}</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <span>{physicalCores} cores, {logicalCores} threads</span>
@@ -198,7 +198,7 @@ function CpuColumn({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <Gauge className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">CPU Usage</span>
+            <span className="text-base font-medium text-foreground">CPU Usage</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-32 h-2 bg-surface-2 rounded-full overflow-hidden">
@@ -207,7 +207,7 @@ function CpuColumn({
                 style={{ width: `${Math.min(usage, 100)}%` }}
               />
             </div>
-            <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
+            <span className={`text-base font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
               {Math.round(usage)}%
             </span>
           </div>
@@ -215,7 +215,7 @@ function CpuColumn({
       </div>
 
       {/* CPU Stats */}
-      <div className="flex flex-wrap gap-4 mb-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-4 mb-3 text-base text-muted-foreground">
         {temperature !== null && temperature !== undefined && temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className="w-3 h-3" />
@@ -244,10 +244,10 @@ function CpuColumn({
             onClick={() => setShowPerCore(!showPerCore)}
             className="flex items-center justify-between w-full text-left"
           >
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="text-base text-muted-foreground uppercase tracking-wider">
               Per-Core Usage
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-base text-muted-foreground">
               {showPerCore ? "▲" : "▼"}
             </span>
           </button>
@@ -255,7 +255,7 @@ function CpuColumn({
             <div className="grid grid-cols-4 gap-2 mt-2">
               {coreLoads.map((load, i) => (
                 <div key={i} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-base text-muted-foreground">
                     <span>C{i}</span>
                     <span className={load > 80 ? "text-red-500 font-bold" : ""}>{load}%</span>
                   </div>
@@ -276,8 +276,8 @@ function CpuColumn({
 
       {/* User/System Breakdown */}
       {(usageUser > 0 || usageSystem > 0) && (
-        <div className="mb-3 text-xs">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Load Breakdown</span>
+        <div className="mb-3 text-base">
+          <span className="text-base text-muted-foreground uppercase tracking-wider">Load Breakdown</span>
           <div className="flex gap-2 mt-1">
             <div className="flex items-center gap-1">
               <span className="text-primary">●</span>
@@ -296,12 +296,12 @@ function CpuColumn({
       {/* Per-Core Clock Speeds */}
       {coreSpeeds && coreSpeeds.length > 0 && (
         <div className="mb-3">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Per-Core Speeds (GHz)</span>
+          <span className="text-base text-muted-foreground uppercase tracking-wider">Per-Core Speeds (GHz)</span>
           <div className="grid grid-cols-8 gap-1 mt-1">
             {coreSpeeds.map((speed, i) => (
               <div key={i} className="text-center">
                 <span className="text-[9px] text-muted-foreground">C{i}</span>
-                <p className="text-[10px] font-mono text-foreground">{speed.toFixed(2)}</p>
+                <p className="text-base font-mono text-foreground">{speed.toFixed(2)}</p>
               </div>
             ))}
           </div>
@@ -311,8 +311,8 @@ function CpuColumn({
       {/* Cache Info */}
       {cache && (
         <div className="mb-3">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Cache</span>
-          <div className="grid grid-cols-4 gap-2 mt-1 text-xs">
+          <span className="text-base text-muted-foreground uppercase tracking-wider">Cache</span>
+          <div className="grid grid-cols-4 gap-2 mt-1 text-base">
             <div className="flex flex-col">
               <span className="text-[9px] text-muted-foreground">L1 Data</span>
               <span className="font-mono text-foreground">{(cache.l1d / 1024).toFixed(0)} KB</span>
@@ -335,7 +335,7 @@ function CpuColumn({
 
       {/* CPU Features & Info */}
       <div className="mb-3">
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Features</span>
+        <span className="text-base text-muted-foreground uppercase tracking-wider">Features</span>
         <div className="flex flex-wrap gap-1 mt-1">
           {flags.includes("avx512f") && <span className="px-1.5 py-0.5 text-[9px] bg-primary/20 text-primary rounded">AVX-512</span>}
           {flags.includes("aes") && <span className="px-1.5 py-0.5 text-[9px] bg-green-500/20 text-green-400 rounded">AES-NI</span>}
@@ -351,7 +351,7 @@ function CpuColumn({
 
       {/* Clock Speed Range */}
       {(maxSpeedMHz > 0 || minSpeedMHz > 0) && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-base text-muted-foreground">
           <span>Speed: {minSpeedMHz > 0 ? (minSpeedMHz / 1000).toFixed(2) : "?"} - {(maxSpeedMHz / 1000).toFixed(2)} GHz</span>
         </div>
       )}
@@ -404,18 +404,18 @@ function GpuColumn({
               <Video className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Graphics Processor</p>
-              <p className="text-sm font-semibold text-foreground truncate">{primaryGpu.marketingName || primaryGpu.name}</p>
+              <p className="text-base text-muted-foreground uppercase tracking-wider">Graphics Processor</p>
+              <p className="text-base font-semibold text-foreground truncate">{primaryGpu.marketingName || primaryGpu.name}</p>
             </div>
           </div>
           {trainingStatus && (
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${trainingStatus.bg} border border-border/50`}>
               <trainingStatus.icon className={`w-3.5 h-3.5 ${trainingStatus.color}`} />
-              <span className={`text-xs font-medium ${trainingStatus.color}`}>{trainingStatus.label}</span>
+              <span className={`text-base font-medium ${trainingStatus.color}`}>{trainingStatus.label}</span>
             </div>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
           <span>{primaryGpu.vendor || "AMD"}</span>
           {primaryGpu.gfxVersion && primaryGpu.gfxVersion !== "N/A" && (
             <>
@@ -443,7 +443,7 @@ function GpuColumn({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <Gauge className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">GPU Usage</span>
+            <span className="text-base font-medium text-foreground">GPU Usage</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-32 h-2 bg-surface-2 rounded-full overflow-hidden">
@@ -452,7 +452,7 @@ function GpuColumn({
                 style={{ width: `${Math.min(primaryGpu.usage ?? 0, 100)}%` }}
               />
             </div>
-            <span className={`text-sm font-bold ${(primaryGpu.usage ?? 0) > 80 ? "text-red-500" : "text-foreground"}`}>
+            <span className={`text-base font-bold ${(primaryGpu.usage ?? 0) > 80 ? "text-red-500" : "text-foreground"}`}>
               {primaryGpu.usage ?? 0}%
             </span>
           </div>
@@ -464,7 +464,7 @@ function GpuColumn({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <MemoryStick className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">VRAM</span>
+            <span className="text-base font-medium text-foreground">VRAM</span>
             {vramStatus.status === "CRITICAL" && (
               <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />
             )}
@@ -476,12 +476,12 @@ function GpuColumn({
                 style={{ width: `${Math.min(vramStatus.percent, 100)}%` }}
               />
             </div>
-            <span className={`text-sm font-bold ${vramStatus.color}`}>
+            <span className={`text-base font-bold ${vramStatus.color}`}>
               {vramStatus.percent}%
             </span>
           </div>
         </div>
-        <div className="flex justify-between mt-1 text-xs text-muted-foreground px-1">
+        <div className="flex justify-between mt-1 text-base text-muted-foreground px-1">
           <span>Used: {formatGB(primaryGpu.memory?.used || 0)}</span>
           <span>Total: {formatGB(primaryGpu.memory?.total || 0)}</span>
           {vramStatus.status !== "OK" && (
@@ -491,12 +491,12 @@ function GpuColumn({
       </div>
 
       {/* GPU Stats Row - Expanded */}
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
+      <div className="flex flex-wrap gap-3 text-base text-muted-foreground mb-3">
         {primaryGpu.temperature !== null && primaryGpu.temperature !== undefined && primaryGpu.temperature > 0 && (
           <div className="flex items-center gap-1">
             <Thermometer className={`w-3 h-3 ${isThrottling ? "text-red-500" : ""}`} />
             <span className={isThrottling ? "text-red-500" : ""}>{formatTemp(primaryGpu.temperature)}</span>
-            {isThrottling && <span className="text-red-500 text-[10px]">⚠</span>}
+            {isThrottling && <span className="text-red-500 text-base">⚠</span>}
           </div>
         )}
         {primaryGpu.temperatureHotspot !== undefined && primaryGpu.temperatureHotspot !== null && primaryGpu.temperatureHotspot > 0 && (
@@ -543,7 +543,7 @@ function GpuColumn({
 
       {/* ECC Errors Row */}
       {(primaryGpu.eccCorrectable !== undefined || primaryGpu.eccUncorrectable !== undefined) && (
-        <div className="flex flex-wrap gap-3 text-xs mb-3">
+        <div className="flex flex-wrap gap-3 text-base mb-3">
           {primaryGpu.eccCorrectable !== undefined && (
             <div className={`flex items-center gap-1 ${(primaryGpu.eccCorrectable ?? 0) > 0 ? "text-yellow-500" : "text-muted-foreground"}`}>
               <span>ECC Corr:</span>
@@ -569,7 +569,7 @@ function GpuColumn({
             height={32}
             className="h-8 w-auto object-contain"
           />
-          <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
+          <span className="text-base text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
         </div>
       )}
 
@@ -580,10 +580,10 @@ function GpuColumn({
           onClick={() => setShowGpuHardware(!showGpuHardware)}
           className="flex items-center justify-between w-full text-left"
         >
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          <p className="text-base text-muted-foreground uppercase tracking-wider">
             Hardware Details
           </p>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-base text-muted-foreground">
             {showGpuHardware ? "▲" : "▼"}
           </span>
         </button>
@@ -666,8 +666,8 @@ function MemoryColumn({
       {/* Memory Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">Usage</span>
-          <span className={`text-sm font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
+          <span className="text-base text-muted-foreground">Usage</span>
+          <span className={`text-base font-bold ${usage > 80 ? "text-red-500" : "text-foreground"}`}>
             {Math.round(usage)}%
           </span>
         </div>
@@ -683,22 +683,22 @@ function MemoryColumn({
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-green-400">{used.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Used</p>
+          <p className="text-base text-muted-foreground uppercase">Used</p>
         </div>
         <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-foreground">{free.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Free</p>
+          <p className="text-base text-muted-foreground uppercase">Free</p>
         </div>
         <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-cyan-400">{swapUsed.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Swap</p>
+          <p className="text-base text-muted-foreground uppercase">Swap</p>
         </div>
       </div>
 
       {/* Total */}
       <div className="text-center p-3 bg-surface-2 rounded">
         <p className="text-2xl font-bold text-foreground">{total.toFixed(2)} GB</p>
-        <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+        <p className="text-base text-muted-foreground uppercase">Total</p>
       </div>
     </Column>
   );
@@ -731,23 +731,23 @@ function NetworkColumn({
 
       {/* Interface Info */}
       <div className="mb-3">
-        <p className="text-sm font-medium text-foreground">{primaryInterface.name}</p>
+        <p className="text-base font-medium text-foreground">{primaryInterface.name}</p>
       </div>
 
       {/* Speed */}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-green-400">{formatSpeed(primaryInterface.rxSec)}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Download</p>
+          <p className="text-base text-muted-foreground uppercase">Download</p>
         </div>
         <div className="text-center p-2 bg-surface-2 rounded">
           <p className="text-lg font-bold text-blue-400">{formatSpeed(primaryInterface.txSec)}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Upload</p>
+          <p className="text-base text-muted-foreground uppercase">Upload</p>
         </div>
       </div>
 
       {/* Total Traffic */}
-      <div className="text-xs text-muted-foreground">
+      <div className="text-base text-muted-foreground">
         <div className="flex justify-between mb-1">
           <span>↓ Total</span>
           <span>{formatSpeed(primaryInterface.rxBytes)}</span>
@@ -790,8 +790,8 @@ function DiskColumn({
       {/* Total Usage */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">Total Usage</span>
-          <span className={`text-sm font-bold ${totalUsage > 80 ? "text-red-500" : "text-foreground"}`}>
+          <span className="text-base text-muted-foreground">Total Usage</span>
+          <span className={`text-base font-bold ${totalUsage > 80 ? "text-red-500" : "text-foreground"}`}>
             {totalUsage}%
           </span>
         </div>
@@ -801,7 +801,7 @@ function DiskColumn({
             style={{ width: `${Math.min(totalUsage, 100)}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+        <div className="flex justify-between mt-1 text-base text-muted-foreground">
           <span>{formatGB(total.used)} used</span>
           <span>{formatGB(total.total)}</span>
         </div>
@@ -812,8 +812,8 @@ function DiskColumn({
         {disks.map((disk) => (
           <div key={disk.name} className="p-2 bg-surface-2 rounded">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-foreground truncate">{disk.name.split("/").pop()}</span>
-              <span className="text-xs text-muted-foreground">{disk.usage}%</span>
+              <span className="text-base text-foreground truncate">{disk.name.split("/").pop()}</span>
+              <span className="text-base text-muted-foreground">{disk.usage}%</span>
             </div>
             <div className="h-1.5 bg-background rounded-full overflow-hidden">
               <div
@@ -923,7 +923,7 @@ function DashboardContent() {
             <div className="flex items-center justify-center flex-1">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Activity className="w-4 h-4 animate-pulse" />
-                <span className="text-sm">Loading...</span>
+                <span className="text-base">Loading...</span>
               </div>
             </div>
           ) : (
@@ -967,7 +967,7 @@ function DashboardContent() {
       >
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
           {/* Left: Quick GPU stats */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-base text-muted-foreground">
             {metrics?.gpu?.[0] && (
               <>
                 <span className="flex items-center gap-1">
@@ -992,7 +992,7 @@ function DashboardContent() {
 
           {/* Right: Theme toggle */}
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-base text-muted-foreground">
               {lastUpdate?.toLocaleTimeString() || "--:--:--"}
             </span>
             <button
