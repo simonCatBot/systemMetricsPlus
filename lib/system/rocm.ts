@@ -119,8 +119,10 @@ async function findRocmSmi(): Promise<string | undefined> {
 
 /**
  * Find amd-smi binary
+ * @deprecated Kept for potential future use, currently not needed
  */
-async function findAmdSmi(): Promise<string | undefined> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _findAmdSmi(): Promise<string | undefined> {
   const paths = [
     "/usr/bin/amd-smi",
     "/opt/rocm/bin/amd-smi",
@@ -523,8 +525,10 @@ function parseDriverVersion(output: string): string {
 
 /**
  * Get GPU usage from rocm-smi
+ * @deprecated Kept for potential future use, currently using getGpuUsageFromSmi instead
  */
-async function getGpuUsage(rocmSmiPath: string): Promise<
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _getGpuUsage(rocmSmiPath: string): Promise<
   Map<
     number,
     {
