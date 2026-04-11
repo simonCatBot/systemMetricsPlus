@@ -16,18 +16,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    // Check for saved preference
+    // Check for saved preference after mount
     const saved = localStorage.getItem("theme") as Theme | null;
+    let newTheme: Theme;
     if (saved) {
-      setThemeState(saved);
-      document.documentElement.classList.toggle("dark", saved === "dark");
+      newTheme = saved;
     } else {
       // Check system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const initial = prefersDark ? "dark" : "light";
-      setThemeState(initial);
-      document.documentElement.classList.toggle("dark", initial === "dark");
+      newTheme = prefersDark ? "dark" : "light";
     }
+    // Schedule state update in a separate tick to avoid synchronous setState warning
+    requestAnimationFrame(() => {
+      setThemeState(newTheme);
+      document.documentElement.classList.toggle("dark", newTheme === "dark");
+    });
   }, []);
 
   const toggleTheme = () => {

@@ -149,9 +149,19 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
     const graphics = await si.graphics();
     const controllers = graphics.controllers || [];
     if (controllers.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      interface GraphicsController {
+        model?: string;
+        vendor?: string;
+        memoryTotal?: number;
+        memoryUsed?: number;
+        temperatureGpu?: number;
+        utilizationGpu?: number;
+        powerDraw?: number;
+        driverVersion?: string;
+        clockCore?: number;
+      }
       return {
-        gpus: controllers.map((gpu: any, index: number) => ({
+        gpus: controllers.map((gpu: GraphicsController, index: number) => ({
           index,
           name: String(gpu.model || "Unknown GPU"),
           marketingName: String(gpu.model || "Unknown GPU"),
