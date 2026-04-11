@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { ThemeProvider, useTheme } from "./ThemeContext";
 import type { SystemMetrics } from "@/types/metrics";
 import {
@@ -863,6 +863,7 @@ export function DashboardContent() {
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
   const [showPerCore, setShowPerCore] = useState(true);
   const [showGpuHardware, setShowGpuHardware] = useState(true);
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
@@ -880,24 +881,42 @@ export function DashboardContent() {
     });
   };
 
-  const fetchMetrics = useCallback(async () => {
-    try {
-      const res = await fetch("/api/metrics");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data: SystemMetrics = await res.json();
-      setMetrics(data);
-      setLastUpdate(new Date(data.timestamp));
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch metrics:", error);
-      setIsLoading(false);
+  const fetchMetrics = useCallback(() => {
+    // Abort any pending request (handles React Strict Mode double-invoke)
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
     }
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    fetch("/api/metrics", { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
+      .then((data: SystemMetrics) => {
+        setMetrics(data);
+        setLastUpdate(new Date(data.timestamp));
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        console.error("Failed to fetch metrics:", error);
+        setIsLoading(false);
+      })
+      .finally(() => clearTimeout(timeout));
   }, []);
 
   useEffect(() => {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, UPDATE_INTERVAL);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+      }
+    };
   }, [fetchMetrics]);
 
   const getVisibleColumns = () => {
