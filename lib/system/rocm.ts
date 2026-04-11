@@ -818,20 +818,47 @@ async function getAmdSmiStatic(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
 }
 
 /**
+ * Get GPU usage percentage from rocm-smi --showuse (JSON output)
+ */
+async function getGpuUsageFromSmi(rocmSmiPath: string): Promise<Map<number, number>> {
+  const usageMap = new Map<number, number>();
+
+  try {
+    const { stdout } = await execAsync(`${rocmSmiPath} --showuse --json 2>/dev/null`);
+    const data = JSON.parse(stdout);
+    for (const [key, value] of Object.entries(data)) {
+      if (key.startsWith("card")) {
+        const index = parseInt(key.replace("card", ""), 10);
+        const usage = parseInt((value as { "GPU use (%)": string })["GPU use (%)"], 10);
+        usageMap.set(index, usage);
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to get GPU usage from JSON:", error);
+  }
+
+  return usageMap;
+}
+
+/**
  * Get comprehensive GPU info from rocm-smi -a
  */
 async function getComprehensiveGpuInfo(rocmSmiPath: string): Promise<{
   driverVersion: string;
   gpuInfo: Map<number, Partial<ROCmGPUInfo>>;
+  gpuUsage: Map<number, number>;
 }> {
   try {
-    const { stdout } = await execAsync(`${rocmSmiPath} -a 2>&1`);
-    const driverVersion = parseDriverVersion(stdout);
-    const gpuInfo = parseRocmSmiAll(stdout);
-    return { driverVersion, gpuInfo };
+    const [smiResult, usageResult] = await Promise.all([
+      execAsync(`${rocmSmiPath} -a 2>&1`),
+      getGpuUsageFromSmi(rocmSmiPath),
+    ]);
+    const driverVersion = parseDriverVersion(smiResult.stdout);
+    const gpuInfo = parseRocmSmiAll(smiResult.stdout);
+    return { driverVersion, gpuInfo, gpuUsage: usageResult };
   } catch (error) {
     console.error("Failed to get comprehensive GPU info:", error);
-    return { driverVersion: "unknown", gpuInfo: new Map() };
+    return { driverVersion: "unknown", gpuInfo: new Map(), gpuUsage: new Map() };
   }
 }
 
@@ -903,11 +930,14 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
       const comprehensive = await getComprehensiveGpuInfo(rocmSmiPath);
       driverVersion = comprehensive.driverVersion;
       comprehensiveInfo = comprehensive.gpuInfo;
-
-      // Also get real-time metrics
-      const usageData = await getGpuUsage(rocmSmiPath);
+      const usageData = comprehensive.gpuUsage;
 
       for (const gpu of gpus) {
+        // Merge GPU usage
+        const usage = usageData.get(gpu.index);
+        if (usage !== undefined) {
+          gpu.usage = usage;
+        }
         // Merge comprehensive info using intelligent matching
         const extraInfo = matchGpuWithSmiData(gpu, comprehensiveInfo);
         if (extraInfo) {
@@ -944,17 +974,9 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
         gpu.driverVersion = driverVersion;
 
         // Merge real-time metrics using index-based lookup (rocm-smi --showuse matches rocm-smi -a indices)
-        const metrics = usageData.get(extraInfo?.index ?? gpu.index);
-        if (metrics) {
-          gpu.usage = metrics.usage;
-          gpu.temperature = metrics.temperature;
-          gpu.power = metrics.power;
-          if (metrics.memoryTotal !== undefined) {
-            gpu.memory = {
-              total: metrics.memoryTotal,
-              used: metrics.memoryUsed || 0,
-            };
-          }
+        const gpuUsage = usageData.get(extraInfo?.index ?? gpu.index);
+        if (gpuUsage !== undefined) {
+          gpu.usage = gpuUsage;
         }
       }
     }
