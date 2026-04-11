@@ -59,6 +59,7 @@ interface ROCmSystemInfo {
   detected: boolean;
   rocmInfoPath?: string;
   rocmSmiPath?: string;
+  amdSmiAvailable?: boolean;
 }
 
 /**
@@ -1068,6 +1069,7 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
       gpus,
       rocmInfoPath,
       rocmSmiPath,
+      amdSmiAvailable: true,
     };
   } catch (error) {
     console.error("Failed to detect ROCm:", error);
@@ -1075,7 +1077,171 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
       detected: false,
       runtimeVersion: "",
       gpus: [],
+      amdSmiAvailable: false,
     };
+  }
+}
+
+// Advanced AMD GPU Metrics Functions
+
+export interface AmdGpuEngineMetrics {
+  gfx: number;
+  mem: number;
+  mm: number;
+}
+
+export interface AmdGpuThermalMetrics {
+  edge: number | null;
+  junction: number | null;
+  memory: number | null;
+  isThrottling: boolean;
+  throttleReason?: string;
+}
+
+export interface AmdGpuPowerMetrics {
+  instant: number | null;
+  average: number | null;
+  voltage: number | null;
+}
+
+export interface AmdGpuClockMetrics {
+  sclk: number | null;
+  mclk: number | null;
+}
+
+export interface AmdGpuPcieMetrics {
+  width: number | null;
+  speed: string | null;
+  bandwidth: number | null;
+  replayErrors: number | null;
+}
+
+export interface AmdGpuXgmiMetrics {
+  bandwidth: number | null;
+  linkStatus: string | null;
+}
+
+export interface AmdGpuMediaMetrics {
+  encoder: number | null;
+  decoder: number | null;
+}
+
+export interface AmdGpuEccMetrics {
+  correctable: number;
+  uncorrectable: number;
+}
+
+export interface AdvancedAmdGpuMetrics {
+  engineMetrics?: AmdGpuEngineMetrics;
+  thermalMetrics?: AmdGpuThermalMetrics;
+  powerMetrics?: AmdGpuPowerMetrics;
+  clockMetrics?: AmdGpuClockMetrics;
+  pcieMetrics?: AmdGpuPcieMetrics;
+  xgmiMetrics?: AmdGpuXgmiMetrics;
+  mediaMetrics?: AmdGpuMediaMetrics;
+  eccMetrics?: AmdGpuEccMetrics;
+}
+
+/**
+ * Get advanced AMD GPU metrics from amd-smi
+ */
+export async function getAdvancedAmdGpuMetrics(gpuIndex: number): Promise<AdvancedAmdGpuMetrics> {
+  const metrics: AdvancedAmdGpuMetrics = {};
+
+  try {
+    const { stdout } = await execAsync(`amd-smi metric -g ${gpuIndex} --json 2>/dev/null`);
+    const data = JSON.parse(stdout);
+    const gpuData = data.gpu_data?.[0];
+
+    if (!gpuData) return metrics;
+
+    // Engine utilization
+    if (gpuData.engines) {
+      metrics.engineMetrics = {
+        gfx: parseFloat(gpuData.engines.gfx?.value) || 0,
+        mem: parseFloat(gpuData.engines.mem?.value) || 0,
+        mm: parseFloat(gpuData.engines.mm?.value) || 0,
+      };
+    }
+
+    // Thermal metrics
+    if (gpuData.temperature) {
+      metrics.thermalMetrics = {
+        edge: gpuData.temperature.edge?.value ? parseFloat(gpuData.temperature.edge.value) : null,
+        junction: gpuData.temperature.hotspot ? parseFloat(gpuData.temperature.hotspot) : null,
+        memory: gpuData.temperature.mem ? parseFloat(gpuData.temperature.mem) : null,
+        isThrottling: gpuData.throttle?.status === 'yes',
+        throttleReason: gpuData.throttle?.reason || undefined,
+      };
+    }
+
+    // Power metrics
+    if (gpuData.power) {
+      metrics.powerMetrics = {
+        instant: parseFloat(gpuData.power.socket_power) || null,
+        average: parseFloat(gpuData.power.average_socket_power) || null,
+        voltage: parseFloat(gpuData.power.voltage) || null,
+      };
+    }
+
+    // Clock metrics
+    if (gpuData.clock) {
+      metrics.clockMetrics = {
+        sclk: parseInt(gpuData.clock.sclk?.value) || null,
+        mclk: parseInt(gpuData.clock.mclk?.value) || null,
+      };
+    }
+
+    // PCIe metrics
+    if (gpuData.pcie) {
+      metrics.pcieMetrics = {
+        width: parseInt(gpuData.pcie.width) || null,
+        speed: gpuData.pcie.speed || null,
+        bandwidth: parseFloat(gpuData.pcie.bandwidth) || null,
+        replayErrors: parseInt(gpuData.pcie.replay_errors) || null,
+      };
+    }
+
+    // XGMI metrics (for multi-GPU)
+    if (gpuData.xgmi) {
+      metrics.xgmiMetrics = {
+        bandwidth: parseFloat(gpuData.xgmi.bandwidth) || null,
+        linkStatus: gpuData.xgmi.link_status || null,
+      };
+    }
+
+    // Media engines
+    if (gpuData.engines) {
+      metrics.mediaMetrics = {
+        encoder: parseFloat(gpuData.engines.encoder?.value) || null,
+        decoder: parseFloat(gpuData.engines.decoder?.value) || null,
+      };
+    }
+
+    // ECC metrics
+    if (gpuData.ecc) {
+      metrics.eccMetrics = {
+        correctable: parseInt(gpuData.ecc.correctable_count) || 0,
+        uncorrectable: parseInt(gpuData.ecc.uncorrectable_count) || 0,
+      };
+    }
+
+  } catch (error) {
+    console.warn(`Advanced AMD metrics not available for GPU ${gpuIndex}:`, error);
+  }
+
+  return metrics;
+}
+
+/**
+ * Check if AMD SMI is available for advanced metrics
+ */
+export async function isAmdSmiAvailable(): Promise<boolean> {
+  try {
+    await execAsync('which amd-smi');
+    return true;
+  } catch {
+    return false;
   }
 }
 
