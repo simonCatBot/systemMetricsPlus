@@ -592,8 +592,7 @@ function GpuColumn({
             alt="AMD ROCm"
             width={32}
             height={32}
-            className="h-8 w-auto object-contain"
-            style={{ width: "auto", height: "auto" }}
+            className="h-8 w-8 object-contain"
           />
           <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
         </div>
@@ -918,7 +917,7 @@ export function DashboardContent() {
       >
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-center">
-            <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" />
+            <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" loading="eager" />
             <h1 className="text-xl font-semibold text-foreground">System Metrics <span className="text-primary">Plus</span></h1>
           </div>
 
