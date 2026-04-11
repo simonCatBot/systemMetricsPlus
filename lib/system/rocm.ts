@@ -32,6 +32,10 @@ export interface ROCmGPUInfo {
     total: number; // GB
     used: number; // GB
   };
+  gttMemory?: {
+    total: number; // GB
+    used: number; // GB
+  };
   usage?: number; // percentage
   temperature?: number; // celsius
   temperatureHotspot?: number; // celsius
@@ -686,6 +690,18 @@ async function getAmdSmiMetrics(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
           ? parseInt(gpuData.mem_usage.used_vram.value, 10) 
           : 0;
         metrics.memory = {
+          total: Math.round((totalMB / 1024) * 100) / 100,
+          used: Math.round((usedMB / 1024) * 100) / 100,
+        };
+      }
+
+      // GTT (Graphics Translation Table) - system memory used by GPU
+      if (gpuData.mem_usage?.total_gtt?.value !== undefined) {
+        const totalMB = parseInt(gpuData.mem_usage.total_gtt.value, 10);
+        const usedMB = gpuData.mem_usage.used_gtt?.value 
+          ? parseInt(gpuData.mem_usage.used_gtt.value, 10) 
+          : 0;
+        metrics.gttMemory = {
           total: Math.round((totalMB / 1024) * 100) / 100,
           used: Math.round((usedMB / 1024) * 100) / 100,
         };

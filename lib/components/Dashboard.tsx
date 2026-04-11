@@ -504,12 +504,16 @@ function GpuColumn({
           </div>
         </div>
         <div className="flex justify-between mt-1 text-xs text-muted-foreground px-1">
-          <span>Used: {formatGB(primaryGpu.memory?.used || 0)}</span>
-          <span>Total: {formatGB(primaryGpu.memory?.total || 0)}</span>
+          <span>VRAM: {formatGB(primaryGpu.memory?.used || 0)} / {formatGB(primaryGpu.memory?.total || 0)}</span>
           {vramStatus.status !== "OK" && (
             <span className={vramStatus.color}>{vramStatus.status}</span>
           )}
         </div>
+        {primaryGpu.gttMemory && (
+          <div className="flex justify-between mt-1 text-xs text-muted-foreground px-1">
+            <span>GTT: {formatGB(primaryGpu.gttMemory.used || 0)} / {formatGB(primaryGpu.gttMemory.total || 0)}</span>
+          </div>
+        )}
       </div>
 
       {/* GPU Stats Row - Expanded */}

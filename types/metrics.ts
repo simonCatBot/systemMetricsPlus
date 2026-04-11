@@ -51,6 +51,10 @@ export interface GpuMetrics {
     total: number;
     used: number;
   };
+  gttMemory?: {
+    total: number;
+    used: number;
+  };
   temperature?: number | null;
   temperatureHotspot?: number | null;
   temperatureMem?: number | null;
