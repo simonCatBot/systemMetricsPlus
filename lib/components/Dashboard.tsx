@@ -889,10 +889,11 @@ export function DashboardContent() {
     const controller = new AbortController();
     fetchControllerRef.current = controller;
     const timeout = setTimeout(() => controller.abort(), 5000);
+    const url = `${window.location.origin}/api/metrics`;
 
-    fetch("/api/metrics", { signal: controller.signal })
+    fetch(url, { signal: controller.signal })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         return res.json();
       })
       .then((data: SystemMetrics) => {
@@ -902,7 +903,7 @@ export function DashboardContent() {
       })
       .catch((error) => {
         if (error.name === "AbortError") return;
-        console.error("Failed to fetch metrics:", error);
+        console.error("Failed to fetch metrics:", error.name, error.message);
         setIsLoading(false);
       })
       .finally(() => clearTimeout(timeout));
