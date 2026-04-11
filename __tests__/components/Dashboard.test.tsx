@@ -1,4 +1,3 @@
-import { render } from '@testing-library/react';
 import type { SystemMetrics } from '@/types/metrics';
 
 // Simple smoke test - Dashboard is complex with providers, 
