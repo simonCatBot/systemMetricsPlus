@@ -1,5 +1,7 @@
 import { render } from '@testing-library/react';
 import Dashboard from '@/lib/components/Dashboard';
+import { ThemeProvider } from '@/lib/components/ThemeContext';
+import { TabProvider } from '@/lib/components/TabContext';
 import type { SystemMetrics } from '@/types/metrics';
 import { screen, waitFor } from '@testing-library/dom';
 
@@ -95,6 +97,17 @@ const mockMetrics: SystemMetrics = {
   rocmRuntimeVersion: '7.2.0',
 };
 
+// Wrapper component to provide context
+function DashboardWrapper() {
+  return (
+    <ThemeProvider>
+      <TabProvider>
+        <Dashboard />
+      </TabProvider>
+    </ThemeProvider>
+  );
+}
+
 describe('Dashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -104,12 +117,12 @@ describe('Dashboard', () => {
   });
 
   it('renders loading state initially', () => {
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
   it('renders dashboard after loading data', async () => {
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
 
     await waitFor(() => {
       expect(screen.getByText('AMD Ryzen 9 7950X')).toBeInTheDocument();
@@ -119,7 +132,7 @@ describe('Dashboard', () => {
   });
 
   it('displays system name', async () => {
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
 
     await waitFor(() => {
       expect(screen.getByText('System Metrics Plus')).toBeInTheDocument();
@@ -127,7 +140,7 @@ describe('Dashboard', () => {
   });
 
   it('renders all tabs', async () => {
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
 
     await waitFor(() => {
       expect(screen.getByText('Processor')).toBeInTheDocument();
@@ -137,7 +150,7 @@ describe('Dashboard', () => {
   it('handles API errors gracefully', async () => {
     (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
 
     // Should still render without crashing
     await waitFor(() => {
@@ -146,7 +159,7 @@ describe('Dashboard', () => {
   });
 
   it('updates footer with last update time', async () => {
-    render(<Dashboard />);
+    render(<DashboardWrapper />);
 
     await waitFor(() => {
       // Footer should show time
