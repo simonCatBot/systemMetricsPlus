@@ -1,5 +1,4 @@
 import { GET } from '@/app/api/metrics/route';
-import { NextRequest } from 'next/server';
 
 // Mock systeminformation
 jest.mock('systeminformation', () => ({

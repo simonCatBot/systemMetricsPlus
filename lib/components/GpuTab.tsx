@@ -422,7 +422,7 @@ export default function GpuTab({ gpus }: GpuTabProps) {
               Additional GPUs
             </h3>
           </div>
-          {additionalGpus.map((gpu, idx) => (
+          {additionalGpus.map((gpu) => (
             <GpuCard key={gpu.index} gpu={gpu} />
           ))}
         </div>

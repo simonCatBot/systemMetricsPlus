@@ -1,5 +1,4 @@
 import { detectROCm, getMarketingName, resolveGfxVersion } from '@/lib/system/rocm';
-import type { ROCmGPUInfo } from '@/lib/system/rocm';
 
 // Mock child_process
 jest.mock('child_process', () => ({
@@ -7,9 +6,6 @@ jest.mock('child_process', () => ({
 }));
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 describe('ROCm Detection', () => {
   beforeEach(() => {
@@ -104,9 +100,7 @@ Agent 1
 `;
 
       // Mock exec to return rocminfo output
-      let callCount = 0;
       (exec as unknown as jest.Mock).mockImplementation((cmd: string, callback: (err: Error | null, result?: { stdout: string; stderr: string }) => void) => {
-        callCount++;
         if (cmd.includes('rocminfo') || cmd.includes('test -x')) {
           callback(null, { stdout: rocminfoOutput, stderr: '' });
         } else {
@@ -114,7 +108,7 @@ Agent 1
         }
       });
 
-      const result = await detectROCm();
+      await detectROCm();
       // Note: This test may fail if the actual implementation
       // expects different behavior. Adjust as needed.
     });

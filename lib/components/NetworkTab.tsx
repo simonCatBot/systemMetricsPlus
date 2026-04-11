@@ -34,6 +34,7 @@ function formatBytes(bytes: number) {
   return `${bytes} B`;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ProgressBar({
   value,
   alert = false,

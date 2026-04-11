@@ -8,7 +8,6 @@ import {
   MemoryStick,
   HardDrive,
   Activity,
-  Server,
   Clock,
   Wifi,
   Video,
@@ -160,8 +159,8 @@ function CpuColumn({
     );
   }
 
-  const { name, usage, usageUser, usageSystem, physicalCores, logicalCores, temperature, currentSpeedMHz, maxSpeedMHz, minSpeedMHz, loadAvg, coreLoads, coreSpeeds, cache, flags, virtualization, governor, topProcesses } = data;
-  const [load1, load5, load15] = loadAvg;
+  const { name, usage, usageUser, usageSystem, physicalCores, logicalCores, temperature, currentSpeedMHz, maxSpeedMHz, minSpeedMHz, loadAvg, coreLoads, coreSpeeds, cache, flags, virtualization, governor } = data;
+  const [load1] = loadAvg;
 
   return (
     <Column isActive={isActive} onClick={onClick}>
@@ -683,7 +682,7 @@ function MemoryColumn({
     );
   }
 
-  const { total, used, free, usage, swapUsed, swapTotal } = data;
+  const { total, used, free, usage, swapUsed } = data;
 
   return (
     <Column isActive={isActive} onClick={onClick}>
@@ -955,7 +954,8 @@ function DashboardContent() {
           ) : (
             getVisibleColumns().map((tabId) => {
               const isActive = activeTab === tabId;
-              const tab = allTabs.find((t) => t.id === tabId)!;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const _tab = allTabs.find((t) => t.id === tabId)!;
               switch (tabId) {
                 case "cpu":
                   return <CpuColumn key={tabId} data={metrics.cpu} isActive={isActive} onClick={() => setActiveTab(tabId)} showPerCore={showPerCore} setShowPerCore={setShowPerCore} />;

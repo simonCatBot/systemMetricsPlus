@@ -4,6 +4,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export type TabId = "cpu" | "gpu" | "memory" | "network" | "disk";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Tab {
   id: TabId;
   label: string;

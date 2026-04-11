@@ -8,10 +8,6 @@ import {
   Activity,
 } from "lucide-react";
 
-function formatGB(gb: number) {
-  return `${gb.toFixed(1)} GB`;
-}
-
 function ProgressBar({
   value,
   alert = false,
@@ -41,7 +37,8 @@ interface SystemMemorySectionProps {
 }
 
 function SystemMemorySection({ data }: SystemMemorySectionProps) {
-  const { total, used, free, usage, swapTotal, swapUsed, swapFree } = data;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { total, used, free, usage, swapTotal, swapUsed, swapFree: _swapFree } = data;
 
   return (
     <div
