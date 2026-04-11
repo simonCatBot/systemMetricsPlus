@@ -10,14 +10,18 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "dark",
+  toggleTheme: () => {},
+  setTheme: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Initialize theme from localStorage or system preference
+    // Initialize theme from localStorage or system preference (client-side only)
     const saved = localStorage.getItem("theme") as Theme | null;
     let initial: Theme;
     if (saved) {
@@ -26,7 +30,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       initial = prefersDark ? "dark" : "light";
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initial);
     document.documentElement.classList.toggle("dark", initial === "dark");
     setMounted(true);
@@ -45,11 +48,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.setAttribute("data-theme", newTheme);
   };
 
-  // Prevent flash of wrong theme
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
@@ -58,9 +56,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }
