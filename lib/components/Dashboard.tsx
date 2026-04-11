@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { ThemeProvider, useTheme } from "./ThemeContext";
 import type { SystemMetrics } from "@/types/metrics";
 import {
@@ -590,9 +590,9 @@ function GpuColumn({
           <Image
             src="https://avatars.githubusercontent.com/u/16900649?s=280&v=4"
             alt="AMD ROCm"
-            width={80}
+            width={32}
             height={32}
-            className="h-8 w-auto object-contain"
+            className="h-8 w-8 object-contain"
           />
           <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
         </div>
@@ -863,6 +863,7 @@ export function DashboardContent() {
   const [activeTab, setActiveTab] = useState<TabId>("cpu");
   const [showPerCore, setShowPerCore] = useState(true);
   const [showGpuHardware, setShowGpuHardware] = useState(true);
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
   const toggleTab = (id: TabId) => {
     setVisibleTabs((prev) => {
@@ -880,24 +881,48 @@ export function DashboardContent() {
     });
   };
 
-  const fetchMetrics = useCallback(async () => {
-    try {
-      const res = await fetch("/api/metrics");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data: SystemMetrics = await res.json();
-      setMetrics(data);
-      setLastUpdate(new Date(data.timestamp));
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch metrics:", error);
-      setIsLoading(false);
+  const fetchMetrics = useCallback(() => {
+    // Abort any pending request (handles React Strict Mode double-invoke)
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
     }
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const url = `${window.location.origin}/api/metrics`;
+
+    fetch(url, {
+      signal: controller.signal,
+      credentials: "same-origin",
+      cache: "no-store",
+      mode: "same-origin",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
+      .then((data: SystemMetrics) => {
+        setMetrics(data);
+        setLastUpdate(new Date(data.timestamp));
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        if (error.name === "AbortError") return;
+        console.error("Failed to fetch metrics:", error.name, error.message);
+        setIsLoading(false);
+      })
+      .finally(() => clearTimeout(timeout));
   }, []);
 
   useEffect(() => {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, UPDATE_INTERVAL);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+      }
+    };
   }, [fetchMetrics]);
 
   const getVisibleColumns = () => {
@@ -917,7 +942,7 @@ export function DashboardContent() {
       >
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-center">
-            <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" />
+            <Image src="/logo.svg" alt="Logo" width={48} height={48} className="w-12 h-12 mr-3" loading="eager" />
             <h1 className="text-xl font-semibold text-foreground">System Metrics <span className="text-primary">Plus</span></h1>
           </div>
 

@@ -6,6 +6,16 @@ import type { SystemMetrics } from "@/types/metrics";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS(): Promise<NextResponse> {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 async function getCpuMetrics() {
   const [cpu, cpuLoad, cpuSpeed, cpuTemp, cpuCache] = await Promise.all([
     si.cpu(),
@@ -317,9 +327,9 @@ export async function GET(): Promise<NextResponse> {
       rocmRuntimeVersion: gpuData.rocmRuntimeVersion,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers: corsHeaders });
   } catch (error) {
     console.error("Failed to collect metrics:", error);
-    return NextResponse.json({ error: "Failed to collect metrics" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to collect metrics" }, { status: 500, headers: corsHeaders });
   }
 }
