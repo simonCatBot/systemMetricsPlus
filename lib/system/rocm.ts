@@ -150,7 +150,7 @@ async function findAmdSmi(): Promise<string | undefined> {
  * Hybrid approach: uses hardcoded marketing names when known,
  * falls back to dynamic description with detected specs.
  */
-function getMarketingName(
+export function getMarketingName(
   gfxVersion: string | undefined,
   gpu?: { computeUnits?: number; maxClockMHz?: number; deviceId?: string }
 ): string {
@@ -233,7 +233,7 @@ function getMarketingName(
  * reports gfx1100 in rocminfo but has Device ID 0x1502.
  * See: https://devicehunt.com/view/type/pci/vendor/1002/device/1502
  */
-function resolveGfxVersion(deviceId: string | undefined, fallback: string): string {
+export function resolveGfxVersion(deviceId: string | undefined, fallback: string): string {
   if (!deviceId) return fallback;
   // Normalize: strip leading "0x" and normalize to lowercase
   const id = deviceId.replace(/^0x/i, "").toLowerCase();
