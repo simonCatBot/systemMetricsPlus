@@ -891,7 +891,12 @@ export function DashboardContent() {
     const timeout = setTimeout(() => controller.abort(), 5000);
     const url = `${window.location.origin}/api/metrics`;
 
-    fetch(url, { signal: controller.signal })
+    fetch(url, {
+      signal: controller.signal,
+      credentials: "same-origin",
+      cache: "no-store",
+      mode: "same-origin",
+    })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         return res.json();
