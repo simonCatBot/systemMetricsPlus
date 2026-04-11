@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import * as si from "systeminformation";
-import { detectROCm } from "@/lib/system/rocm";
+import { detectROCm, getAdvancedAmdGpuMetrics, isAmdSmiAvailable } from "@/lib/system/rocm";
 import type { SystemMetrics } from "@/types/metrics";
 
 export const dynamic = "force-dynamic";
@@ -138,40 +138,72 @@ interface GpuOutput {
 }
 
 async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boolean; rocmRuntimeVersion: string }> {
+  const amdSmiAvail = await isAmdSmiAvailable();
+  
   // First try ROCm detection
   try {
     const rocData = await detectROCm();
     if (rocData.gpus && rocData.gpus.length > 0) {
+      // Fetch advanced metrics for each GPU if amd-smi is available
+      const enhancedGpus = await Promise.all(
+        rocData.gpus.map(async (gpu) => {
+          const baseGpu = {
+            index: gpu.index,
+            name: gpu.name,
+            marketingName: gpu.marketingName,
+            vendor: gpu.vendor,
+            usage: gpu.usage ?? 0,
+            memory: gpu.memory || { total: 0, used: 0 },
+            gttMemory: gpu.gttMemory,
+            temperature: gpu.temperature ?? null,
+            temperatureHotspot: gpu.temperatureHotspot ?? null,
+            temperatureMem: gpu.temperatureMem ?? null,
+            power: gpu.power ?? null,
+            driverVersion: gpu.driverVersion || "Unknown",
+            gfxVersion: gpu.gfxVersion,
+            deviceId: gpu.deviceId || "N/A",
+            computeUnits: gpu.computeUnits,
+            maxClockMHz: gpu.maxClockMHz,
+            currentClockMHz: gpu.currentClockMHz || 0,
+            memoryClockMHz: gpu.memoryClockMHz ?? null,
+            vbiosVersion: gpu.vbiosVersion,
+            pciBus: gpu.pciBus,
+            vramType: gpu.vramType,
+            vramBitWidth: gpu.vramBitWidth,
+            pcieWidth: gpu.pcieWidth ?? null,
+            pcieSpeed: gpu.pcieSpeed ?? null,
+            eccCorrectable: gpu.eccCorrectable ?? null,
+            eccUncorrectable: gpu.eccUncorrectable ?? null,
+            isThrottling: gpu.isThrottling ?? false,
+          };
+          
+          // Add advanced metrics if amd-smi is available
+          if (amdSmiAvail) {
+            try {
+              const advancedMetrics = await getAdvancedAmdGpuMetrics(gpu.index);
+              return {
+                ...baseGpu,
+                engineUtilization: advancedMetrics.engineMetrics,
+                thermal: advancedMetrics.thermalMetrics,
+                powerMetrics: advancedMetrics.powerMetrics,
+                clocks: advancedMetrics.clockMetrics,
+                pcieMetrics: advancedMetrics.pcieMetrics,
+                xgmiMetrics: advancedMetrics.xgmiMetrics,
+                mediaEngines: advancedMetrics.mediaMetrics,
+                eccMetrics: advancedMetrics.eccMetrics,
+              };
+            } catch {
+              // Advanced metrics failed, return base GPU
+              return baseGpu;
+            }
+          }
+          
+          return baseGpu;
+        })
+      );
+      
       return {
-        gpus: rocData.gpus.map((gpu) => ({
-          index: gpu.index,
-          name: gpu.name,
-          marketingName: gpu.marketingName,
-          vendor: gpu.vendor,
-          usage: gpu.usage ?? 0,
-          memory: gpu.memory || { total: 0, used: 0 },
-          gttMemory: gpu.gttMemory,
-          temperature: gpu.temperature ?? null,
-          temperatureHotspot: gpu.temperatureHotspot ?? null,
-          temperatureMem: gpu.temperatureMem ?? null,
-          power: gpu.power ?? null,
-          driverVersion: gpu.driverVersion || "Unknown",
-          gfxVersion: gpu.gfxVersion,
-          deviceId: gpu.deviceId || "N/A",
-          computeUnits: gpu.computeUnits,
-          maxClockMHz: gpu.maxClockMHz,
-          currentClockMHz: gpu.currentClockMHz || 0,
-          memoryClockMHz: gpu.memoryClockMHz ?? null,
-          vbiosVersion: gpu.vbiosVersion,
-          pciBus: gpu.pciBus,
-          vramType: gpu.vramType,
-          vramBitWidth: gpu.vramBitWidth,
-          pcieWidth: gpu.pcieWidth ?? null,
-          pcieSpeed: gpu.pcieSpeed ?? null,
-          eccCorrectable: gpu.eccCorrectable ?? null,
-          eccUncorrectable: gpu.eccUncorrectable ?? null,
-          isThrottling: gpu.isThrottling ?? false,
-        })),
+        gpus: enhancedGpus,
         rocmDetected: true,
         rocmRuntimeVersion: rocData.runtimeVersion || "",
       };
@@ -315,6 +347,8 @@ export async function GET(): Promise<NextResponse> {
       arch: osInfo.arch || "Unknown",
     };
 
+    const amdSmiAvail = await isAmdSmiAvailable();
+    
     const response: SystemMetrics = {
       timestamp: Date.now(),
       cpu: cpuMetrics,
@@ -325,6 +359,7 @@ export async function GET(): Promise<NextResponse> {
       os: osMetrics,
       rocmDetected: gpuData.rocmDetected,
       rocmRuntimeVersion: gpuData.rocmRuntimeVersion,
+      amdSmiAvailable: amdSmiAvail,
     };
 
     return NextResponse.json(response, { headers: corsHeaders });

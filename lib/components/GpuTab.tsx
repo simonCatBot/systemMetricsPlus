@@ -9,6 +9,12 @@ import {
   AlertTriangle,
   Activity,
 } from "lucide-react";
+import GpuEnginesPanel from "./GpuEnginesPanel";
+import GpuThermalPanel from "./GpuThermalPanel";
+import GpuPowerPanel from "./GpuPowerPanel";
+import GpuMediaPanel from "./GpuMediaPanel";
+import GpuPciePanel from "./GpuPciePanel";
+import GpuEccPanel from "./GpuEccPanel";
 
 function formatGB(gb: number) {
   return `${gb.toFixed(1)} GB`;
@@ -411,6 +417,46 @@ export default function GpuTab({ gpus }: GpuTabProps) {
             </span>
           </div>
         )}
+
+        {/* Advanced Metrics Panels */}
+        {(() => {
+          const hasAdvancedMetrics = 
+            primaryGpu.engineUtilization ||
+            primaryGpu.thermal ||
+            primaryGpu.powerMetrics ||
+            primaryGpu.mediaEngines ||
+            primaryGpu.pcieMetrics ||
+            primaryGpu.xgmiMetrics ||
+            primaryGpu.eccMetrics;
+          
+          if (!hasAdvancedMetrics) return null;
+          
+          return (
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--foreground)" }}>
+                AMD Advanced Metrics
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {primaryGpu.engineUtilization && (
+                  <GpuEnginesPanel engines={primaryGpu.engineUtilization} />
+                )}
+                {primaryGpu.thermal && (
+                  <GpuThermalPanel thermal={primaryGpu.thermal} />
+                )}
+                {primaryGpu.powerMetrics && (
+                  <GpuPowerPanel power={primaryGpu.powerMetrics} />
+                )}
+                {primaryGpu.mediaEngines && (
+                  <GpuMediaPanel media={primaryGpu.mediaEngines} />
+                )}
+                {(primaryGpu.pcieMetrics || primaryGpu.xgmiMetrics) && (
+                  <GpuPciePanel pcie={primaryGpu.pcieMetrics} xgmi={primaryGpu.xgmiMetrics} />
+                )}
+                <GpuEccPanel ecc={primaryGpu.eccMetrics} />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Additional GPUs */}

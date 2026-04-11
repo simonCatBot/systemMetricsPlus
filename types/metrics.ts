@@ -41,6 +41,61 @@ export interface MemoryMetrics {
   swapFree: number;
 }
 
+// AMD GPU Engine Utilization (GFX, MEM, MM)
+export interface GpuEngineUtilization {
+  gfx: number; // Compute/graphics cores
+  mem: number; // Memory controller
+  mm: number;  // Multimedia engines
+}
+
+// AMD GPU Thermal sensors
+export interface GpuThermal {
+  edge: number | null;
+  junction: number | null;
+  memory: number | null;
+  isThrottling: boolean;
+  throttleReason?: string;
+}
+
+// AMD GPU Power metrics
+export interface GpuPower {
+  instant: number | null;
+  average: number | null;
+  voltage: number | null;
+}
+
+// AMD GPU Clock speeds
+export interface GpuClocks {
+  sclk: number | null; // Core clock
+  mclk: number | null; // Memory clock
+}
+
+// AMD PCIe metrics
+export interface GpuPcie {
+  width: number | null;
+  speed: string | null;
+  bandwidth: number | null; // MB/s
+  replayErrors: number | null;
+}
+
+// AMD XGMI metrics (multi-GPU interconnect)
+export interface GpuXgmi {
+  bandwidth: number | null; // MB/s
+  linkStatus: string | null;
+}
+
+// AMD Media Engine metrics
+export interface GpuMedia {
+  encoder: number | null; // % utilization
+  decoder: number | null; // % utilization
+}
+
+// AMD ECC metrics
+export interface GpuEcc {
+  correctable: number;
+  uncorrectable: number;
+}
+
 export interface GpuMetrics {
   index: number;
   name: string;
@@ -50,6 +105,7 @@ export interface GpuMetrics {
   memory: {
     total: number;
     used: number;
+    utilization?: number | null;
   };
   gttMemory?: {
     total: number;
@@ -75,6 +131,16 @@ export interface GpuMetrics {
   eccCorrectable?: number | null;
   eccUncorrectable?: number | null;
   isThrottling?: boolean;
+  
+  // New advanced AMD metrics
+  engineUtilization?: GpuEngineUtilization;
+  thermal?: GpuThermal;
+  powerMetrics?: GpuPower;
+  clocks?: GpuClocks;
+  pcieMetrics?: GpuPcie;
+  xgmiMetrics?: GpuXgmi;
+  mediaEngines?: GpuMedia;
+  eccMetrics?: GpuEcc;
 }
 
 export interface NetworkMetrics {
@@ -125,4 +191,5 @@ export interface SystemMetrics {
   };
   rocmDetected: boolean;
   rocmRuntimeVersion: string;
+  amdSmiAvailable?: boolean;
 }
