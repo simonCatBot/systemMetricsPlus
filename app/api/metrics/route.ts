@@ -21,10 +21,37 @@ async function getMemoryMetrics() {
   return si.mem();
 }
 
+interface GraphicsController {
+  model?: string;
+  vendor?: string;
+  memoryTotal?: number;
+  memoryUsed?: number;
+  temperatureGpu?: number;
+  utilizationGpu?: number;
+  powerDraw?: number;
+  driverVersion?: string;
+  clockCore?: number;
+}
+
+interface NetworkInterface {
+  iface?: string;
+  rx_bytes?: number;
+  tx_bytes?: number;
+  rx_sec?: number;
+  tx_sec?: number;
+  speed?: number;
+}
+
+interface DiskInfo {
+  fs?: string;
+  size?: number;
+  used?: number;
+  use?: number;
+}
+
 async function getNetworkStats() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stats = await si.networkStats() as any[];
+    const stats = await si.networkStats() as NetworkInterface[];
     return stats.map((iface) => ({
       iface: String(iface.iface || ""),
       rx_bytes: Number(iface.rx_bytes || 0),
@@ -40,8 +67,7 @@ async function getNetworkStats() {
 
 async function getDiskMetrics() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const disks = await si.fsSize() as any[];
+    const disks = await si.fsSize() as DiskInfo[];
     return disks.map((disk) => ({
       fs: String(disk.fs || ""),
       size: Number(disk.size || 0),
@@ -149,9 +175,8 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
     const graphics = await si.graphics();
     const controllers = graphics.controllers || [];
     if (controllers.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return {
-        gpus: controllers.map((gpu: any, index: number) => ({
+        gpus: controllers.map((gpu: GraphicsController, index: number) => ({
           index,
           name: String(gpu.model || "Unknown GPU"),
           marketingName: String(gpu.model || "Unknown GPU"),

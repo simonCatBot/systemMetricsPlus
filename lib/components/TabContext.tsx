@@ -4,6 +4,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export type TabId = "cpu" | "gpu" | "memory" | "network" | "disk";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Tab {
   id: TabId;
   label: string;
@@ -18,7 +19,14 @@ interface TabContextType {
   hideTab: (id: TabId) => void;
 }
 
-const TabContext = createContext<TabContextType | null>(null);
+const TabContext = createContext<TabContextType>({
+  activeTab: "cpu",
+  setActiveTab: () => {},
+  visibleTabs: new Set(["cpu", "gpu", "memory", "network", "disk"]),
+  toggleTab: () => {},
+  showTab: () => {},
+  hideTab: () => {},
+});
 
 const allTabs: TabId[] = ["cpu", "gpu", "memory", "network", "disk"];
 
@@ -72,9 +80,5 @@ export function TabProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTabs() {
-  const context = useContext(TabContext);
-  if (!context) {
-    throw new Error("useTabs must be used within a TabProvider");
-  }
-  return context;
+  return useContext(TabContext);
 }

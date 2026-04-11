@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 type Theme = "dark" | "light";
 
@@ -10,37 +10,35 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "dark",
+  toggleTheme: () => {},
+  setTheme: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Simple dark theme default, no localStorage to avoid SSR issues
   const [theme, setThemeState] = useState<Theme>("dark");
-
-  useEffect(() => {
-    // Check for saved preference
-    const saved = localStorage.getItem("theme") as Theme | null;
-    if (saved) {
-      setThemeState(saved);
-      document.documentElement.classList.toggle("dark", saved === "dark");
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const initial = prefersDark ? "dark" : "light";
-      setThemeState(initial);
-      document.documentElement.classList.toggle("dark", initial === "dark");
-    }
-  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setThemeState(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("dark", newTheme === "dark");
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("theme", newTheme);
+    }
   };
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", newTheme);
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("theme", newTheme);
+    }
   };
 
   return (
@@ -51,9 +49,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }
