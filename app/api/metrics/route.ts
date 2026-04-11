@@ -112,7 +112,7 @@ async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boole
           name: gpu.name,
           marketingName: gpu.marketingName,
           vendor: gpu.vendor,
-          usage: 0,
+          usage: gpu.usage ?? 0,
           memory: gpu.memory || { total: 0, used: 0 },
           gttMemory: gpu.gttMemory,
           temperature: gpu.temperature ?? null,
