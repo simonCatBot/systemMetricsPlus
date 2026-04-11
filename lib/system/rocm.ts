@@ -698,8 +698,8 @@ async function getAmdSmiMetrics(): Promise<Map<number, Partial<ROCmGPUInfo>>> {
       // GTT (Graphics Translation Table) - system memory used by GPU
       if (gpuData.mem_usage?.total_gtt?.value !== undefined) {
         const totalMB = parseInt(gpuData.mem_usage.total_gtt.value, 10);
-        const usedMB = gpuData.mem_usage.used_gtt?.value 
-          ? parseInt(gpuData.mem_usage.used_gtt.value, 10) 
+        const usedMB = gpuData.mem_usage.used_gtt?.value
+          ? parseInt(gpuData.mem_usage.used_gtt.value, 10)
           : 0;
         metrics.gttMemory = {
           total: Math.round((totalMB / 1024) * 100) / 100,
@@ -986,6 +986,9 @@ export async function detectROCm(): Promise<ROCmSystemInfo> {
         }
         if (amdMetrics.memory) {
           gpu.memory = amdMetrics.memory;
+        }
+        if (amdMetrics.gttMemory) {
+          gpu.gttMemory = amdMetrics.gttMemory;
         }
         if (amdMetrics.pcieWidth !== undefined) {
           gpu.pcieWidth = amdMetrics.pcieWidth;
