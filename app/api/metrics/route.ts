@@ -135,6 +135,15 @@ interface GpuOutput {
   eccCorrectable?: number | null;
   eccUncorrectable?: number | null;
   isThrottling?: boolean;
+  // Advanced AMD metrics
+  engineUtilization?: { gfx: number; mem: number; mm: number };
+  thermal?: { edge: number | null; junction: number | null; memory: number | null; isThrottling: boolean; throttleReason?: string };
+  powerMetrics?: { instant: number | null; average: number | null; voltage: number | null };
+  clocks?: { sclk: number | null; mclk: number | null };
+  pcieMetrics?: { width: number | null; speed: string | null; bandwidth: number | null; replayErrors: number | null };
+  xgmiMetrics?: { bandwidth: number | null; linkStatus: string | null };
+  mediaEngines?: { encoder: number | null; decoder: number | null };
+  eccMetrics?: { correctable: number; uncorrectable: number };
 }
 
 async function getGpuMetrics(): Promise<{ gpus: GpuOutput[]; rocmDetected: boolean; rocmRuntimeVersion: string }> {
