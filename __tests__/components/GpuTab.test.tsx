@@ -11,6 +11,7 @@ const mockGpu: GpuMetrics = {
   usage: 75,
   memory: { total: 32, used: 16 },
   temperature: 45,
+  power: 65.5,
   driverVersion: '6.3.6',
   gfxVersion: 'gfx1150',
   deviceId: '0x150e',

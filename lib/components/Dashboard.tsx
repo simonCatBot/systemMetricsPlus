@@ -854,7 +854,7 @@ function DiskColumn({
 }
 
 /* Main Dashboard */
-function DashboardContent() {
+export function DashboardContent() {
   const { theme, toggleTheme } = useTheme();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);

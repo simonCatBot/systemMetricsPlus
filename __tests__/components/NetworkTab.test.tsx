@@ -79,7 +79,7 @@ describe('NetworkTab', () => {
     const { container } = render(<NetworkTab data={mockNetwork} />);
     expect(container.textContent).toContain('Total:');
     expect(container.textContent).toContain('1.00 GB');
-    expect(container.textContent).toContain('512.00 MB');
+    expect(container.textContent).toContain('512.0 MB');
   });
 
   it('renders aggregate traffic section', () => {
@@ -87,10 +87,39 @@ describe('NetworkTab', () => {
     expect(screen.getByText('Aggregate Traffic')).toBeInTheDocument();
   });
 
-  it('shows interface speed when available', () => {
-    const { container } = render(<NetworkTab data={mockNetwork} />);
-    // Speed displayed in Mbps
-    expect(container.textContent).toMatch(/1000/);
+  it('shows interface speed in all interfaces section', () => {
+    const multiInterfaceNetwork: NetworkMetrics = {
+      interfaces: [
+        {
+          name: 'eth0',
+          ip4: '192.168.1.100',
+          ip6: '',
+          speed: 1000,
+          rxSec: 1024,
+          txSec: 512,
+          rxBytes: 1073741824,
+          txBytes: 536870912,
+        },
+        {
+          name: 'wlan0',
+          ip4: '192.168.1.101',
+          ip6: '',
+          speed: 866,
+          rxSec: 512,
+          txSec: 256,
+          rxBytes: 268435456,
+          txBytes: 134217728,
+        },
+      ],
+      total: {
+        rxSec: 1536,
+        txSec: 768,
+      },
+    };
+    const { container } = render(<NetworkTab data={multiInterfaceNetwork} />);
+    // Speed is shown in All Interfaces section
+    expect(container.textContent).toContain('1000 Mbps');
+    expect(container.textContent).toContain('866 Mbps');
   });
 
   it('renders all interfaces section when multiple interfaces', () => {
