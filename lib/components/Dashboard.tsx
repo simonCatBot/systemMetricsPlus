@@ -590,9 +590,10 @@ function GpuColumn({
           <Image
             src="https://avatars.githubusercontent.com/u/16900649?s=280&v=4"
             alt="AMD ROCm"
-            width={80}
+            width={32}
             height={32}
             className="h-8 w-auto object-contain"
+            style={{ width: "auto", height: "auto" }}
           />
           <span className="text-xs text-muted-foreground">Powered by ROCm {rocmRuntimeVersion}</span>
         </div>
